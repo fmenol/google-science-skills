@@ -1,0 +1,84 @@
+% Citations for the esmc_mutation_effect_scoring skill.
+%
+% The method this skill implements — masking one residue at a time and reading
+% the log-likelihood ratio between the mutant and the wild-type residue — is
+% the "masked marginal" scheme introduced by Meier et al. (2021). The
+% pseudo-perplexity subcommand implements the pseudo-log-likelihood score of
+% Salazar et al. (2020). Cite both when reporting results from this skill.
+
+@inproceedings{meier2021language,
+  title     = {Language models enable zero-shot prediction of the effects of
+               mutations on protein function},
+  author    = {Meier, Joshua and Rao, Roshan and Verkuil, Robert and Liu, Jason
+               and Sercu, Tom and Rives, Alexander},
+  booktitle = {Advances in Neural Information Processing Systems},
+  volume    = {34},
+  pages     = {29287--29303},
+  year      = {2021},
+  note      = {The masked-marginal zero-shot variant-effect method used here.},
+  url       = {https://www.biorxiv.org/content/10.1101/2021.07.09.450648},
+  doi       = {10.1101/2021.07.09.450648}
+}
+
+@inproceedings{salazar2020masked,
+  title     = {Masked Language Model Scoring},
+  author    = {Salazar, Julian and Liang, Davis and Nguyen, Toan Q. and
+               Kirchhoff, Katrin},
+  booktitle = {Proceedings of the 58th Annual Meeting of the Association for
+               Computational Linguistics},
+  pages     = {2699--2712},
+  year      = {2020},
+  publisher = {Association for Computational Linguistics},
+  note      = {Origin of pseudo-log-likelihood / pseudo-perplexity scoring for
+               masked language models.},
+  doi       = {10.18653/v1/2020.acl-main.240}
+}
+
+@misc{esmc2024,
+  title        = {{ESM} Cambrian: a protein language model for representation
+                  and prediction},
+  author       = {{ESM Team}},
+  year         = {2024},
+  howpublished = {Model release, Biohub Platform},
+  note         = {Models esmc-300m-2024-12, esmc-600m-2024-12 and
+                  esmc-6b-2024-12, served remotely via the Biohub API.},
+  url          = {https://biohub.ai/}
+}
+
+@article{hayes2025simulating,
+  title   = {Simulating 500 million years of evolution with a language model},
+  author  = {Hayes, Thomas and Rao, Roshan and Akin, Halil and Sofroniew,
+             Nicholas J. and Oktay, Deniz and Lin, Zeming and Verkuil, Robert
+             and Tran, Vincent Q. and Deaton, Jonathan and Wiggert, Marius and
+             Badkundri, Rohil and Shafkat, Irhum and Gong, Jun and Derry,
+             Alexander and Molina, Raul S. and Thomas, Neil and Khan, Yousuf A.
+             and Mishra, Chetan and Kim, Carolyn and Bartie, Liam J. and
+             Nemeth, Matthew and Hsu, Patrick D. and Sercu, Tom and Candido,
+             Salvatore and Rives, Alexander},
+  journal = {Science},
+  volume  = {387},
+  number  = {6736},
+  pages   = {850--858},
+  year    = {2025},
+  note    = {The ESM3 model family; background on the ESM lineage.},
+  doi     = {10.1126/science.ads0018}
+}
+
+@inproceedings{notin2023proteingym,
+  title     = {{ProteinGym}: Large-Scale Benchmarks for Protein Fitness
+               Prediction and Design},
+  author    = {Notin, Pascal and Kollasch, Aaron W. and Ritter, Daniel and
+               van Niekerk, Lood and Paul, Steffanie and Spinner, Han and
+               Rollins, Nathan and Shaw, Ada and Orenbuch, Rose and Weitzman,
+               Ruben and Frazer, Jonathan and Dias, Mafalda and Franceschi,
+               Dinko and Gal, Yarin and Marks, Debora S.},
+  booktitle = {Advances in Neural Information Processing Systems, Datasets and
+               Benchmarks Track},
+  volume    = {36},
+  year      = {2023},
+  note      = {The benchmark on which zero-shot variant effect predictors are
+               evaluated. Establishes that these scores are useful for RANKING
+               variants (Spearman correlation with DMS assays) rather than as
+               calibrated absolute stability estimates.},
+  url       = {https://proteingym.org/}
+}

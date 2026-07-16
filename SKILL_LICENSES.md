@@ -17,6 +17,18 @@ dbsnp-database                       | https://www.ncbi.nlm.nih.gov/snp/
 embl-ebi-ols                         | https://www.ebi.ac.uk/ols4/api-docs
 encode-ccres-database                | https://www.encodeproject.org/help/rest-api/
 ensembl-database                     | https://github.com/Ensembl/ensembl-rest/wiki and https://useast.ensembl.org/index.html
+esm-protein-tracks                   | https://biohub.org/acceptable-use-policy/ and https://www.rcsb.org/pages/usage-policy
+esm3-function-prediction             | https://biohub.org/acceptable-use-policy/ and https://biohub.ai/
+esm3-guided-generation               | https://biohub.org/acceptable-use-policy/ and https://biohub.ai/
+esm3-inverse-folding                 | https://biohub.org/acceptable-use-policy/ and https://biohub.ai/
+esm3-protein-design                  | https://biohub.org/acceptable-use-policy/ and https://biohub.ai/
+esm3-secondary-structure-sasa        | https://biohub.org/acceptable-use-policy/ and https://biohub.ai/
+esmc-embedding-layer-sweep           | https://biohub.org/acceptable-use-policy/ and https://biohub.ai/
+esmc-mutation-effect-scoring         | https://biohub.org/acceptable-use-policy/ and https://biohub.ai/
+esmc-protein-embeddings              | https://biohub.org/acceptable-use-policy/ and https://biohub.ai/
+esmc-sae-feature-interpretation      | https://biohub.org/acceptable-use-policy/ and https://biohub.ai/
+esmfold2-binder-screening            | https://biohub.org/acceptable-use-policy/ and https://biohub.ai/
+esmfold2-structure-prediction        | https://biohub.org/acceptable-use-policy/ and https://biohub.ai/
 foldseek-structural-search           | https://search.foldseek.com/search and https://github.com/steineggerlab/foldseek
 gnomad-database                      | https://gnomad.broadinstitute.org/policies and https://gnomad.broadinstitute.org/data#api
 gtex-database                        | https://gtexportal.org/home/license and https://gtexportal.org/home/documentationPage#gtexApi

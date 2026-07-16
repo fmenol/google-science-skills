@@ -1,0 +1,58 @@
+% Primary reference for this skill. ESMFold2 / ESMC, and the binder design +
+% selection protocol whose SELECTION half this skill implements (the gradient
+% design half requires local GPU weights and is not reachable via the API).
+@article{biohub2026worldmodel,
+  title        = {Language Modeling Materializes a World Model of Protein Biology},
+  author       = {{Biohub ESM Team}},
+  journal      = {bioRxiv},
+  year         = {2026},
+  doi          = {10.64898/2026.06.03.729735},
+  url          = {https://www.biorxiv.org/content/10.64898/2026.06.03.729735},
+  note         = {Introduces ESMC and ESMFold2. Algorithms 11--15 define the
+                  gradient-guided binder design loop and the iPTM-based
+                  selection of designs to order.}
+}
+
+% pTM, PAE and the interface pTM (iPTM) that this skill ranks on were introduced
+% here; the 0-31.75 A PAE convention comes from the same work.
+@article{jumper2021alphafold,
+  title        = {Highly accurate protein structure prediction with {AlphaFold}},
+  author       = {Jumper, John and Evans, Richard and Pritzel, Alexander and
+                  Green, Tim and Figurnov, Michael and Ronneberger, Olaf and
+                  Tunyasuvunakool, Kathryn and Bates, Russ and
+                  {\v{Z}}{\'i}dek, Augustin and Potapenko, Anna and others},
+  journal      = {Nature},
+  volume       = {596},
+  number       = {7873},
+  pages        = {583--589},
+  year         = {2021},
+  doi          = {10.1038/s41586-021-03819-2}
+}
+
+% iPTM as the standard confidence metric for predicted protein-protein
+% interfaces (AlphaFold-Multimer).
+@article{evans2022multimer,
+  title        = {Protein complex prediction with {AlphaFold}-Multimer},
+  author       = {Evans, Richard and O'Neill, Michael and Pritzel, Alexander and
+                  Antropova, Natasha and Senior, Andrew and Green, Tim and
+                  {\v{Z}}{\'i}dek, Augustin and Bates, Russ and Blackwell, Sam
+                  and Yim, Jason and others},
+  journal      = {bioRxiv},
+  year         = {2022},
+  doi          = {10.1101/2021.10.04.463034}
+}
+
+% Ground truth for this skill's positive control: the barnase-barstar complex,
+% Kd ~ 1e-14 M, and the Asp39 / Lys27-Arg59-Arg83-His102 hotspots that the
+% screen recovers.
+@article{schreiber1993barnase,
+  title        = {Interaction of barnase with its polypeptide inhibitor barstar
+                  studied by protein engineering},
+  author       = {Schreiber, Gideon and Fersht, Alan R.},
+  journal      = {Biochemistry},
+  volume       = {32},
+  number       = {19},
+  pages        = {5145--5150},
+  year         = {1993},
+  doi          = {10.1021/bi00070a025}
+}

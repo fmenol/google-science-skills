@@ -1,0 +1,147 @@
+@MISC{Candido2026,
+  ABSTRACT = {ESM Cambrian (ESMC) is a family of protein language models trained
+              on billions of protein sequences. Representations are computed in
+              stages: each transformer layer refines the model's internal
+              representation, building from local residue chemistry in the early
+              layers toward high-level functional and evolutionary context in
+              the later ones. The final layer is specialised to the masked-token
+              training objective and is therefore not always the best layer for
+              a downstream task.},
+  AUTHOR = {Candido, Salvatore and Hayes, Thomas and Derry, Alexander and Rao,
+            Roshan and Lin, Zeming and Verkuil, Robert and Wu, Bryan and Lee,
+            Jin Sub and Bruguera, Elise S. and Keval, Jehan A. and Kopylov,
+            Mykhailo and Pak, John E. and Wu, Wesley and Thomas, Neil and
+            Mataraso, Samson and Hsu, Alvin and Trotman-Grant, Ashton C. and
+            Fatras, Kilian and dos Santos Costa, Allan and Badkundri, Rohil and
+            Ak{\i}n, Halil and Oktay, Deniz and Deaton, Jonathan and Montabana,
+            Elizabeth and Sitwala, Hrishita and Yu, Yue and Wiggert, Marius and
+            Carlin, Dylan Alexander and Goering, Anthony W. and Blazejewski,
+            Tomasz and Sandora, McCullen and Hla, Michael and Jia, Tina Z. and
+            Kloker, Leon H. and Sofroniew, Nicholas J. and Uehara, Masatoshi and
+            Pannu, Jassi and Bachas, Sharrol and Liu, Daniel S. and Sercu, Tom
+            and Rives, Alexander},
+  NOTE = {Preprint. The primary citation for ESMC, its sparse autoencoders and
+          ESMFold2.},
+  TITLE = {Language Modeling Materializes a World Model of Protein Biology},
+  URL = {https://www.biorxiv.org/content/10.64898/2026.06.03.729735},
+  DATE = {2026},
+}
+
+@ARTICLE{Hayes2025,
+  ABSTRACT = {More than three billion years of evolution have produced an image
+              of biology encoded into the space of natural proteins. Here we show
+              that language models trained at scale on evolutionary data can
+              generate functional proteins that are far away from known
+              proteins. We present ESM3, a frontier multimodal generative
+              language model that reasons over the sequence, structure and
+              function of proteins.},
+  AUTHOR = {Hayes, Thomas and Rao, Roshan and Akin, Halil and Sofroniew,
+            Nicholas J. and Oktay, Deniz and Lin, Zeming and Verkuil, Robert and
+            Tran, Vincent Q. and Deaton, Jonathan and Wiggert, Marius and
+            Badkundri, Rohil and Shafkat, Irhum and Gong, Jun and Derry,
+            Alexander and Molina, Raul S. and Thomas, Neil and Khan, Yousuf A.
+            and Mishra, Chetan and Kim, Carolyn and Bartie, Liam J. and Nemeth,
+            Matthew and Hsu, Patrick D. and Sercu, Tom and Candido, Salvatore
+            and Rives, Alexander},
+  DOI = {10.1126/science.ads0018},
+  JOURNALTITLE = {Science},
+  TITLE = {Simulating 500 million years of evolution with a language model},
+  URL = {http://dx.doi.org/10.1126/science.ads0018},
+  DATE = {2025},
+}
+
+@INPROCEEDINGS{Vig2021,
+  ABSTRACT = {Transformer architectures have proven to learn useful
+              representations for protein classification and generation tasks.
+              However, these representations present challenges in
+              interpretability. We demonstrate a set of methods for analyzing
+              protein Transformer models through the lens of attention, and show
+              that attention captures the folding structure of proteins,
+              connecting amino acids that are far apart in the underlying
+              sequence but spatially close in three-dimensional structure.
+              Attention targets binding sites, and the deepest layers of the
+              model capture the most complex, high-level properties -- evidence
+              that different depths of a protein language model encode different
+              kinds of information.},
+  AUTHOR = {Vig, Jesse and Madani, Ali and Varshney, Lav R. and Xiong, Caiming
+            and Socher, Richard and Rajani, Nazneen Fatema},
+  BOOKTITLE = {International Conference on Learning Representations (ICLR)},
+  NOTE = {Establishes that different transformer layers encode different classes
+          of protein information, and that late layers are strongest for contact
+          prediction. The empirical basis for sweeping layers rather than
+          defaulting to the last one.},
+  TITLE = {{BERTology} Meets Biology: Interpreting Attention in Protein Language
+           Models},
+  URL = {https://arxiv.org/abs/2006.15222},
+  DATE = {2021},
+}
+
+@ARTICLE{Matthews1975,
+  ABSTRACT = {Introduces the correlation coefficient between the observed and
+              predicted binary classifications now known as the Matthews
+              Correlation Coefficient (MCC). MCC returns a value between -1
+              (total disagreement) and +1 (perfect prediction), with 0 the
+              expected value of a random classifier. Because it accounts for all
+              four confusion-matrix cells, it remains informative under class
+              imbalance where accuracy and F1 are misleading.},
+  AUTHOR = {Matthews, B. W.},
+  DOI = {10.1016/0005-2795(75)90109-9},
+  JOURNALTITLE = {Biochimica et Biophysica Acta (BBA) - Protein Structure},
+  NUMBER = {2},
+  PAGES = {442--451},
+  TITLE = {Comparison of the predicted and observed secondary structure of {T4}
+           phage lysozyme},
+  URL = {https://doi.org/10.1016/0005-2795(75)90109-9},
+  VOLUME = {405},
+  DATE = {1975},
+}
+
+@ARTICLE{Chicco2020,
+  ABSTRACT = {Shows that the Matthews correlation coefficient is more informative
+              and truthful than accuracy and F1 score in binary classification
+              evaluation, because it yields a high score only if the prediction
+              obtained good results in all four confusion-matrix categories.
+              Motivates the use of MCC as the headline metric for a layer sweep.},
+  AUTHOR = {Chicco, Davide and Jurman, Giuseppe},
+  DOI = {10.1186/s12864-019-6413-7},
+  JOURNALTITLE = {BMC Genomics},
+  NUMBER = {1},
+  PAGES = {6},
+  TITLE = {The advantages of the Matthews correlation coefficient ({MCC}) over
+           {F1} score and accuracy in binary classification evaluation},
+  URL = {https://doi.org/10.1186/s12864-019-6413-7},
+  VOLUME = {21},
+  DATE = {2020},
+}
+
+@ARTICLE{Pedregosa2011,
+  ABSTRACT = {Scikit-learn is a Python module integrating a wide range of
+              state-of-the-art machine learning algorithms for medium-scale
+              supervised and unsupervised problems. Supplies the
+              StandardScaler, LogisticRegression, StratifiedKFold,
+              matthews_corrcoef and log_loss used by the linear probe in this
+              skill.},
+  AUTHOR = {Pedregosa, Fabian and Varoquaux, Ga{\"e}l and Gramfort, Alexandre
+            and Michel, Vincent and Thirion, Bertrand and Grisel, Olivier and
+            Blondel, Mathieu and Prettenhofer, Peter and Weiss, Ron and Dubourg,
+            Vincent and Vanderplas, Jake and Passos, Alexandre and Cournapeau,
+            David and Brucher, Matthieu and Perrot, Matthieu and Duchesnay,
+            {\'E}douard},
+  JOURNALTITLE = {Journal of Machine Learning Research},
+  PAGES = {2825--2830},
+  TITLE = {Scikit-learn: Machine Learning in {Python}},
+  URL = {https://jmlr.org/papers/v12/pedregosa11a.html},
+  VOLUME = {12},
+  DATE = {2011},
+}
+
+@MISC{BiohubLayerSweep,
+  AUTHOR = {{Biohub}},
+  NOTE = {Source tutorial for this skill. On ~600 SwissProt enzymes across four
+          third-level EC classes with ESMC 600M, an intermediate layer reached
+          MCC 0.935 while the final layer reached only 0.843.},
+  TITLE = {Which Layer Should You Use? A Layer Sweep for Enzyme Function
+           Classification},
+  URL = {https://github.com/biohub/esm/tree/main/cookbook/tutorials},
+  DATE = {2026},
+}

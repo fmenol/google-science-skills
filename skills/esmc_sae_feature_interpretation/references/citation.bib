@@ -1,0 +1,75 @@
+% Citations for the esmc_sae_feature_interpretation skill.
+%
+% The skill combines two lines of work: the ESM protein language models (whose
+% internal representations are being interpreted) and sparse-autoencoder
+% interpretability (the method used to decompose them). The specific codebook
+% served by the Biohub API is a top-k SAE (k=64, 16,384 features) read off
+% layer 60 of ESM C 6B; the top-k architecture is Gao et al.
+
+@ARTICLE{Hayes2025,
+  AUTHOR = {Hayes, Thomas and Rao, Roshan and Akin, Halil and Sofroniew, Nicholas J. and Oktay, Deniz and Lin, Zeming and Verkuil, Robert and Tran, Vincent Q. and Deaton, Jonathan and Wiggert, Marius and Badkundri, Rohil and Shafkat, Irhum and Gong, Jun and Derry, Alexander and Molina, Raul S. and Thomas, Neil and Khan, Yousuf A. and Mishra, Chetan and Kim, Carolyn and Bartie, Liam J. and Nemeth, Matthew and Hsu, Patrick D. and Sercu, Tom and Candido, Salvatore and Rives, Alexander},
+  TITLE = {Simulating 500 million years of evolution with a language model},
+  JOURNALTITLE = {Science},
+  DATE = {2025},
+  VOLUME = {387},
+  NUMBER = {6736},
+  PAGES = {850--858},
+  DOI = {10.1126/science.ads0018},
+  NOTE = {Introduces ESM3; the ESM C series shares its sequence representation
+          stack and is the model interpreted by this skill.},
+}
+
+@INPROCEEDINGS{Gao2025,
+  AUTHOR = {Gao, Leo and Dupré la Tour, Tom and Tillman, Henk and Goh, Gabriel and Troll, Rajan and Radford, Alec and Sutskever, Ilya and Leike, Jan and Wu, Jeffrey},
+  TITLE = {Scaling and evaluating sparse autoencoders},
+  BOOKTITLE = {International Conference on Learning Representations (ICLR)},
+  DATE = {2025},
+  EPRINT = {2406.04093},
+  EPRINTTYPE = {arXiv},
+  NOTE = {The top-k SAE architecture used by the released ESM C codebook
+          (k = 64 active features per residue out of 16,384).},
+}
+
+@INPROCEEDINGS{Cunningham2024,
+  AUTHOR = {Cunningham, Hoagy and Ewart, Aidan and Riggs, Logan and Huben, Robert and Sharkey, Lee},
+  TITLE = {Sparse autoencoders find highly interpretable features in language models},
+  BOOKTITLE = {International Conference on Learning Representations (ICLR)},
+  DATE = {2024},
+  EPRINT = {2309.08600},
+  EPRINTTYPE = {arXiv},
+}
+
+@ARTICLE{Bricken2023,
+  AUTHOR = {Bricken, Trenton and Templeton, Adly and Batson, Joshua and Chen, Brian and Jermyn, Adam and Conerly, Tom and Turner, Nick and Anil, Cem and Denison, Carson and Askell, Amanda and Lasenby, Robert and Wu, Yifan and Kravec, Shauna and Schiefer, Nicholas and Maxwell, Tim and Joseph, Nicholas and Hatfield-Dodds, Zac and Tamkin, Alex and Nguyen, Karina and McLean, Brayden and Burke, Josiah E. and Hume, Tristan and Carter, Shan and Henighan, Tom and Olah, Christopher},
+  TITLE = {Towards monosemanticity: Decomposing language models with dictionary learning},
+  JOURNALTITLE = {Transformer Circuits Thread},
+  DATE = {2023},
+  URL = {https://transformer-circuits.pub/2023/monosemantic-features},
+  NOTE = {Establishes the polysemanticity problem and the SAE remedy that this
+          skill applies to protein representations.},
+}
+
+@ARTICLE{Simon2024,
+  AUTHOR = {Simon, Elana and Zou, James},
+  TITLE = {{InterPLM}: Discovering interpretable features in protein language
+           models via sparse autoencoders},
+  JOURNALTITLE = {bioRxiv},
+  DATE = {2024},
+  DOI = {10.1101/2024.11.14.623630},
+  NOTE = {Demonstrates that SAE features on protein language models align with
+          real biological concepts (Swiss-Prot/InterPro annotations), and that
+          many features have no existing database counterpart -- the reason
+          feature descriptions must be treated as hypotheses.},
+}
+
+@MISC{BiohubSAECookbook,
+  AUTHOR = {{Biohub}},
+  TITLE = {Understanding proteins with {SAE} features ({ESM} cookbook tutorial)},
+  DATE = {2026},
+  HOWPUBLISHED = {\url{https://biohub.ai/}},
+  NOTE = {Source tutorial for this skill. Feature descriptions are served from
+          the Biohub feature API and were produced by an automated agent that
+          analysed activations across large protein databases; the vendor
+          documents them as suggestive interpretations, not definitive
+          annotations.},
+}

@@ -1,0 +1,89 @@
+% Citations for the esm3-guided-generation skill.
+%
+% If you use this skill, cite BOTH the ESM3 model and the SVDD guided-decoding
+% algorithm it implements.
+
+@article{hayes2025esm3,
+  title    = {Simulating 500 million years of evolution with a language model},
+  author   = {Hayes, Thomas and Rao, Roshan and Akin, Halil and Sofroniew,
+              Nicholas J. and Oktay, Deniz and Lin, Zeming and Verkuil, Robert
+              and Tran, Vincent Q. and Deaton, Jonathan and Wiggert, Marius and
+              Badkundri, Rohil and Shafkat, Irhum and Gong, Jun and Derry,
+              Alexander and Molina, Raul S. and Thomas, Neil and Khan, Yousuf A.
+              and Mishra, Chetan and Kim, Carolyn and Bartie, Liam J. and
+              Nemeth, Matthew and Hsu, Patrick D. and Sercu, Tom and Candido,
+              Salvatore and Rives, Alexander},
+  journal  = {Science},
+  volume   = {387},
+  number   = {6736},
+  pages    = {850--858},
+  year     = {2025},
+  doi      = {10.1126/science.ads0018},
+  note     = {ESM3. The generative multimodal protein language model whose
+              sequence track this skill decodes.}
+}
+
+@article{li2024svdd,
+  title     = {Derivative-Free Guidance in Continuous and Discrete Diffusion
+               Models with Soft Value-Based Decoding},
+  author    = {Li, Xiner and Zhao, Yulai and Wang, Chenyu and Scalia, Gabriele
+               and Eraslan, Gokcen and Nair, Surag and Biancalani, Tommaso and
+               Ji, Shuiwang and Regev, Aviv and Levine, Sergey and Uehara,
+               Masatoshi},
+  journal   = {arXiv preprint arXiv:2408.08252},
+  year      = {2024},
+  doi       = {10.48550/arXiv.2408.08252},
+  eprint    = {2408.08252},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.LG},
+  note      = {Soft Value-Based Decoding (SVDD). The derivative-free guided
+               decoding algorithm implemented by scripts/guided_design.py:
+               propose K candidates per denoising step, score each with a value
+               function evaluated on a denoised prediction, keep the best.}
+}
+
+@inproceedings{platt1987mdmm,
+  title     = {Constrained Differential Optimization},
+  author    = {Platt, John C. and Barr, Alan H.},
+  booktitle = {Advances in Neural Information Processing Systems (NIPS)},
+  volume    = {0},
+  year      = {1987},
+  note      = {The Modified Differential Method of Multipliers, used by the ESM
+               SDK's ESM3GuidedDecodingWithConstraints. This skill deliberately
+               replaces MDMM's dual-variable ascent with feasibility-first
+               candidate ranking, which needs no learning rate or damping term
+               to tune and cannot diverge. See SKILL.md.}
+}
+
+@article{kyte1982hydropathy,
+  title   = {A simple method for displaying the hydropathic character of a
+             protein},
+  author  = {Kyte, Jack and Doolittle, Russell F.},
+  journal = {Journal of Molecular Biology},
+  volume  = {157},
+  number  = {1},
+  pages   = {105--132},
+  year    = {1982},
+  doi     = {10.1016/0022-2836(82)90515-0},
+  note    = {The hydropathy scale behind the `hydrophobicity` (GRAVY)
+             objective.}
+}
+
+@article{bjellqvist1993pi,
+  title   = {The focusing positions of polypeptides in immobilized pH gradients
+             can be predicted from their amino acid sequences},
+  author  = {Bjellqvist, Bengt and Hughes, Graham J. and Pasquali, Christian and
+             Paquet, Nicole and Ravier, Florence and Sanchez, Jean-Charles and
+             Frutiger, S{\'e}verine and Hochstrasser, Denis},
+  journal = {Electrophoresis},
+  volume  = {14},
+  number  = {1},
+  pages   = {1023--1031},
+  year    = {1993},
+  doi     = {10.1002/elps.11501401163},
+  note    = {The pKa set behind the `isoelectric-point` objective. This is the
+             scale used by ExPASy Compute pI/Mw and Biopython; the skill's
+             implementation reproduces Biopython to < 0.001 pH on real
+             proteins. Do NOT substitute the EMBOSS pKa values, which shift pI
+             by up to 1.3 units.}
+}

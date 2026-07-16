@@ -1,0 +1,98 @@
+% Citations for the esm_protein_tracks skill.
+%
+% Hayes2025      — ESM3, the multimodal (sequence/structure/function) model whose
+%                  conditioning tracks this skill prepares.
+% Berman2000     — the Protein Data Bank, source of the input structures.
+% Kunzmann2018   — Biotite, used for the SS3 annotation and the SASA calculation.
+% Labesse1997    — P-SEA, the algorithm behind biotite's `annotate_sse`. NOTE this
+%                  is an SS3 assignment, NOT DSSP SS8.
+% Kabsch1983     — DSSP, the true SS8 reference. Cite it only if you replace the
+%                  P-SEA approximation with a real DSSP run.
+% Shrake1973     — the numerical SASA algorithm biotite implements.
+% Tien2013       — the per-residue maximum-ASA values used to turn absolute SASA
+%                  into the relative accessibility behind the buried/exposed call.
+
+@ARTICLE{Hayes2025,
+  AUTHOR = {Hayes, Thomas and Rao, Roshan and Akin, Halil and Sofroniew, Nicholas J. and Oktay, Deniz and Lin, Zeming and Verkuil, Robert and Tran, Vincent Q. and Deaton, Jonathan and Wiggert, Marius and Badkundri, Rohil and Shafkat, Irhum and Gong, Jun and Derry, Alexander and Molina, Raul S. and Thomas, Neil and Khan, Yousuf A. and Mishra, Chetan and Kim, Carolyn and Bartie, Liam J. and Nemeth, Matthew and Hsu, Patrick D. and Sercu, Tom and Candido, Salvatore and Rives, Alexander},
+  TITLE = {Simulating 500 million years of evolution with a language model},
+  JOURNALTITLE = {Science},
+  DATE = {2025-01},
+  VOLUME = {387},
+  NUMBER = {6736},
+  PAGES = {850--858},
+  DOI = {10.1126/science.ads0018},
+  URL = {https://doi.org/10.1126/science.ads0018},
+}
+
+@ARTICLE{Berman2000,
+  AUTHOR = {Berman, Helen M. and Westbrook, John and Feng, Zukang and Gilliland, Gary and Bhat, T. N. and Weissig, Helge and Shindyalov, Ilya N. and Bourne, Philip E.},
+  TITLE = {The Protein Data Bank},
+  JOURNALTITLE = {Nucleic Acids Research},
+  DATE = {2000-01},
+  VOLUME = {28},
+  NUMBER = {1},
+  PAGES = {235--242},
+  DOI = {10.1093/nar/28.1.235},
+  URL = {https://doi.org/10.1093/nar/28.1.235},
+  ISSN = {0305-1048},
+}
+
+@ARTICLE{Kunzmann2018,
+  AUTHOR = {Kunzmann, Patrick and Hamacher, Kay},
+  TITLE = {Biotite: a unifying open source computational biology framework in Python},
+  JOURNALTITLE = {BMC Bioinformatics},
+  DATE = {2018-10},
+  VOLUME = {19},
+  NUMBER = {1},
+  PAGES = {346},
+  DOI = {10.1186/s12859-018-2367-z},
+  URL = {https://doi.org/10.1186/s12859-018-2367-z},
+}
+
+@ARTICLE{Labesse1997,
+  AUTHOR = {Labesse, G. and Colloc'h, N. and Pothier, J. and Mornon, J. P.},
+  TITLE = {P-SEA: a new efficient assignment of secondary structure from {C$\alpha$} trace of proteins},
+  JOURNALTITLE = {Bioinformatics},
+  DATE = {1997},
+  VOLUME = {13},
+  NUMBER = {3},
+  PAGES = {291--295},
+  DOI = {10.1093/bioinformatics/13.3.291},
+  URL = {https://doi.org/10.1093/bioinformatics/13.3.291},
+}
+
+@ARTICLE{Kabsch1983,
+  AUTHOR = {Kabsch, Wolfgang and Sander, Christian},
+  TITLE = {Dictionary of protein secondary structure: pattern recognition of hydrogen-bonded and geometrical features},
+  JOURNALTITLE = {Biopolymers},
+  DATE = {1983-12},
+  VOLUME = {22},
+  NUMBER = {12},
+  PAGES = {2577--2637},
+  DOI = {10.1002/bip.360221211},
+  URL = {https://doi.org/10.1002/bip.360221211},
+}
+
+@ARTICLE{Shrake1973,
+  AUTHOR = {Shrake, A. and Rupley, J. A.},
+  TITLE = {Environment and exposure to solvent of protein atoms. Lysozyme and insulin},
+  JOURNALTITLE = {Journal of Molecular Biology},
+  DATE = {1973-09},
+  VOLUME = {79},
+  NUMBER = {2},
+  PAGES = {351--371},
+  DOI = {10.1016/0022-2836(73)90011-9},
+  URL = {https://doi.org/10.1016/0022-2836(73)90011-9},
+}
+
+@ARTICLE{Tien2013,
+  AUTHOR = {Tien, Matthew Z. and Meyer, Austin G. and Sydykova, Dariya K. and Spielman, Stephanie J. and Wilke, Claus O.},
+  TITLE = {Maximum allowed solvent accessibilites of residues in proteins},
+  JOURNALTITLE = {PLoS ONE},
+  DATE = {2013-11},
+  VOLUME = {8},
+  NUMBER = {11},
+  PAGES = {e80635},
+  DOI = {10.1371/journal.pone.0080635},
+  URL = {https://doi.org/10.1371/journal.pone.0080635},
+}

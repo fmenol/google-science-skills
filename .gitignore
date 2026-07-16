@@ -1,0 +1,18 @@
+# NEVER commit credentials
+.env
+.env.*
+!.env.example
+
+# Vendored upstream ESM repo (analysed, not part of the skills bundle)
+esm/
+
+# Eval artifacts. Cassettes are regenerable via `uv run --no-project evals/record.py`
+# and are ~32M, so they are not committed; the offline suite is the free CI gate.
+evals/cassettes/
+evals/_artifacts/
+evals/_record*.log
+evals/_record_state.json
+
+# Python
+**/__pycache__/
+*.pyc

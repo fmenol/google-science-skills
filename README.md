@@ -17,6 +17,34 @@ Each skill directory contains:
 -   **scripts/** — Helper scripts and utilities
 -   **references/** — Additional documentation and references (optional)
 
+## ESM protein-model skills
+
+This fork adds twelve skills built on the **ESM protein world model** (ESMC,
+ESMFold2, ESM3 and the ESMC sparse autoencoders), derived from the tutorials in
+[`esm/cookbook/tutorials/`](esm/cookbook/tutorials/). Where the rest of the
+bundle *retrieves* what is already known, these *predict*: variant effects,
+structures, complexes, designs and function — for sequences no database has ever
+seen.
+
+They run entirely against the Biohub Platform API; **no model weights are
+downloaded** and no GPU is required. See **[ESM_SKILLS.md](ESM_SKILLS.md)** for
+the full list, the architecture, the documentation, and the eval results.
+
+Requires a `BIOHUB_API_KEY` from the
+[Biohub developer console](https://biohub.ai/developer-console/api-keys):
+
+```bash
+printf "Enter BIOHUB_API_KEY (typing hidden): " && read -s val && echo && \
+  echo "BIOHUB_API_KEY=$val" >> ~/.env && echo "Saved."
+```
+
+Every skill ships an executable eval that exercises its real CLI against the live
+API with positive **and negative** controls:
+
+```bash
+uv run --no-project evals/run_evals.py
+```
+
 ## Getting started with GDM Science Skills
 
 Install the Science Skills bundle via
