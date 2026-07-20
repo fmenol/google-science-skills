@@ -19,16 +19,28 @@ Each skill directory contains:
 
 ## ESM protein-model skills
 
-This fork adds twelve skills built on the **ESM protein world model** (ESMC,
-ESMFold2, ESM3 and the ESMC sparse autoencoders), derived from the tutorials in
+This fork adds **fifteen** skills built on the **ESM protein world model** (ESMC,
+ESMFold2, ESM3 and the ESMC sparse autoencoders), covering **every** tutorial in
 [`esm/cookbook/tutorials/`](esm/cookbook/tutorials/). Where the rest of the
 bundle *retrieves* what is already known, these *predict*: variant effects,
 structures, complexes, designs and function — for sequences no database has ever
 seen.
 
-They run entirely against the Biohub Platform API; **no model weights are
-downloaded** and no GPU is required. See **[ESM_SKILLS.md](ESM_SKILLS.md)** for
-the full list, the architecture, the documentation, and the eval results.
+They come in two classes:
+
+* **Twelve API skills** run entirely against the Biohub Platform API. **No model
+  weights are downloaded and no GPU is required.** They need a `BIOHUB_API_KEY`.
+* **Three GPU skills** (`esmc-finetune-lora`, `esmfold2-binder-design`,
+  `esm3-design-campaign`) run the open weights on GPUs rented by the second
+  through [**Modal**](https://modal.com), because they need things the API cannot
+  provide: gradients, backprop through the folding trunk, and unmetered
+  inference. They need a Modal account (`pip install modal && modal token new`),
+  but **no API key and zero Biohub credits**.
+
+See **[ESM_SKILLS.md](ESM_SKILLS.md)** for the full list, the architecture, the
+documentation and the eval results, and
+**[skills/esm_gpu_common/SPEC_GPU.md](skills/esm_gpu_common/SPEC_GPU.md)** for the
+GPU-skill contract.
 
 Requires a `BIOHUB_API_KEY` from the
 [Biohub developer console](https://biohub.ai/developer-console/api-keys):

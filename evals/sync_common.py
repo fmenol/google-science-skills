@@ -33,6 +33,10 @@ import sys
 REPO = pathlib.Path(__file__).resolve().parents[1]
 CANONICAL = REPO / 'skills' / 'esm_common' / 'esm_biohub.py'
 
+# The GPU skills vendor a different shared library: they never call the hosted
+# API, they run open weights on Modal GPUs. Same rule, second file.
+CANONICAL_MODAL = REPO / 'skills' / 'esm_gpu_common' / 'esm_modal.py'
+
 ESM_SKILLS = [
     'esmc_protein_embeddings',
     'esmc_embedding_layer_sweep',
@@ -46,6 +50,12 @@ ESM_SKILLS = [
     'esm3_guided_generation',
     'esm_protein_tracks',
     'esm3_secondary_structure_sasa',
+]
+
+GPU_SKILLS = [
+    'esmc_finetune_lora',
+    'esmfold2_binder_design',
+    'esm3_design_campaign',
 ]
 
 
@@ -62,35 +72,44 @@ def main() -> int:
   )
   args = parser.parse_args()
 
-  if not CANONICAL.is_file():
-    print(f'Missing canonical library: {CANONICAL}', file=sys.stderr)
-    return 1
-  want = digest(CANONICAL)
+  drift: list[str] = []
+  synced = 0
 
-  drift = []
-  for skill in ESM_SKILLS:
-    target = REPO / 'skills' / skill / 'scripts' / 'esm_biohub.py'
-    if args.check:
-      if not target.is_file():
-        drift.append(f'{skill}: MISSING')
-      elif digest(target) != want:
-        drift.append(f'{skill}: DRIFTED ({digest(target)} != {want})')
-    else:
-      target.parent.mkdir(parents=True, exist_ok=True)
-      shutil.copyfile(CANONICAL, target)
-      print(f'  vendored -> skills/{skill}/scripts/esm_biohub.py')
+  for canonical, skills in ((CANONICAL, ESM_SKILLS), (CANONICAL_MODAL, GPU_SKILLS)):
+    if not canonical.is_file():
+      print(f'Missing canonical library: {canonical}', file=sys.stderr)
+      return 1
+    want = digest(canonical)
+    for skill in skills:
+      target = REPO / 'skills' / skill / 'scripts' / canonical.name
+      if args.check:
+        if not target.is_file():
+          drift.append(f'{skill}/{canonical.name}: MISSING')
+        elif digest(target) != want:
+          drift.append(
+              f'{skill}/{canonical.name}: DRIFTED ({digest(target)} != {want})'
+          )
+      else:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(canonical, target)
+        print(f'  vendored -> skills/{skill}/scripts/{canonical.name}')
+        synced += 1
 
   if args.check:
     if drift:
-      print('esm_biohub.py is out of sync:', file=sys.stderr)
+      print('Vendored shared libraries are out of sync:', file=sys.stderr)
       for line in drift:
         print(f'  {line}', file=sys.stderr)
       print('\nRun: uv run evals/sync_common.py', file=sys.stderr)
       return 1
-    print(f'All {len(ESM_SKILLS)} copies of esm_biohub.py match ({want}).')
+    print(
+        f'All copies match: {len(ESM_SKILLS)}x esm_biohub.py '
+        f'({digest(CANONICAL)}), {len(GPU_SKILLS)}x esm_modal.py '
+        f'({digest(CANONICAL_MODAL)}).'
+    )
     return 0
 
-  print(f'\nSynced {len(ESM_SKILLS)} skills from {CANONICAL.name} ({want}).')
+  print(f'\nSynced {synced} vendored files.')
   return 0
 
 

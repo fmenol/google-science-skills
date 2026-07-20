@@ -1,0 +1,77 @@
+% Primary reference. This skill runs the paper's Algorithms 11-15 directly:
+% Alg 11 the optimisation loop, Alg 12 the entropy-based contact losses, Alg 13
+% the globularity/radius-of-gyration term, Alg 14 the ESMC pseudo-perplexity
+% sequence regulariser, Alg 15 the distogram iPTM proxy.
+@article{biohub2026worldmodel,
+  title        = {Language Modeling Materializes a World Model of Protein Biology},
+  author       = {{Biohub ESM Team}},
+  journal      = {bioRxiv},
+  year         = {2026},
+  doi          = {10.64898/2026.06.03.729735},
+  url          = {https://www.biorxiv.org/content/10.64898/2026.06.03.729735},
+  note         = {Reports binders with nanomolar affinity, target specificity
+                  and functional activity in laboratory assays. The
+                  implementation run by this skill is
+                  cookbook/tutorials/binder_design.py, pinned at commit
+                  67838dc8ac76f4145613e6cb36c5f3d758542f7c.}
+}
+
+% iPTM, the metric every design here is ranked by, and the confidence framework
+% it belongs to.
+@article{evans2022multimer,
+  title        = {Protein complex prediction with {AlphaFold}-Multimer},
+  author       = {Evans, Richard and O'Neill, Michael and Pritzel, Alexander and
+                  Antropova, Natasha and Senior, Andrew and Green, Tim and
+                  {\v{Z}}{\'i}dek, Augustin and Bates, Russ and Blackwell, Sam
+                  and Yim, Jason and others},
+  journal      = {bioRxiv},
+  year         = {2022},
+  doi          = {10.1101/2021.10.04.463034}
+}
+
+% pTM/PAE and the distogram head that all three structural losses are computed
+% from.
+@article{jumper2021alphafold,
+  title        = {Highly accurate protein structure prediction with {AlphaFold}},
+  author       = {Jumper, John and Evans, Richard and Pritzel, Alexander and
+                  Green, Tim and Figurnov, Michael and Ronneberger, Olaf and
+                  Tunyasuvunakool, Kathryn and Bates, Russ and
+                  {\v{Z}}{\'i}dek, Augustin and Potapenko, Anna and others},
+  journal      = {Nature},
+  volume       = {596},
+  number       = {7873},
+  pages        = {583--589},
+  year         = {2021},
+  doi          = {10.1038/s41586-021-03819-2}
+}
+
+% The lineage of gradient-based "hallucination" design -- optimising a soft
+% sequence representation through a frozen structure predictor -- which the
+% protocol here extends with a language-model naturalness regulariser.
+@article{anishchenko2021hallucination,
+  title        = {De novo protein design by deep network hallucination},
+  author       = {Anishchenko, Ivan and Pellock, Samuel J. and Chidyausiku,
+                  Tamuka M. and Ramelot, Theresa A. and Ovchinnikov, Sergey and
+                  Hao, Jingzhou and Bafna, Khushboo and Norn, Christoffer and
+                  Kang, Alex and Bera, Asim K. and others},
+  journal      = {Nature},
+  volume       = {600},
+  number       = {7889},
+  pages        = {547--552},
+  year         = {2021},
+  doi          = {10.1038/s41586-021-04184-w}
+}
+
+% The empirical radius-of-gyration scaling that the globularity loss penalises
+% deviation from.
+@article{dima2004rg,
+  title        = {Asymmetry in the shapes of folded and denatured states of
+                  proteins},
+  author       = {Dima, Ruxandra I. and Thirumalai, D.},
+  journal      = {The Journal of Physical Chemistry B},
+  volume       = {108},
+  number       = {21},
+  pages        = {6564--6570},
+  year         = {2004},
+  doi          = {10.1021/jp037128y}
+}

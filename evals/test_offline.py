@@ -29,6 +29,7 @@ assertions that genuinely require the model.
 
 from __future__ import annotations
 
+import ast
 import hashlib
 import pathlib
 import re
@@ -64,8 +65,19 @@ SKILLS = [
     'esm3_secondary_structure_sasa',
 ]
 
-# A skill that imports any of these is downloading model weights, which is the
-# one thing the whole design forbids.
+# The GPU skills. These run open weights on Modal GPUs and are governed by
+# skills/esm_gpu_common/SPEC_GPU.md rather than SPEC.md. Their contract (no
+# heavy import at module top level; a Modal app that imports offline) is
+# enforced further down, not by FORBIDDEN_IMPORTS.
+GPU_SKILLS = [
+    'esmc_finetune_lora',
+    'esmfold2_binder_design',
+    'esm3_design_campaign',
+]
+
+# An API skill that imports any of these is downloading model weights, which is
+# the one thing the whole design forbids. This applies to the twelve API skills
+# only; the GPU skills are Modal apps, checked separately.
 FORBIDDEN_IMPORTS = re.compile(
     r'^\s*(?:import|from)\s+(torch|transformers|huggingface_hub|esm\b|peft|modal)',
     re.MULTILINE,
@@ -352,6 +364,110 @@ def main() -> int:
           if (doc_dir / 'examples').is_dir() else []
       ev.check(f'{skill}: has a worked example (Tier B)',
                len(examples) >= 1, f'{len(examples)} example(s)')
+
+  # ------------------------------------------------------- GPU skills ---
+  # A separate contract: these run open weights on Modal GPUs, not the hosted
+  # API. See skills/esm_gpu_common/SPEC_GPU.md.
+  print(f'\n--- GPU (Modal) skill conformance ({len(GPU_SKILLS)} skills) ---')
+  gpu_canonical = SKILLS_DIR / 'esm_gpu_common' / 'esm_modal.py'
+  ev.check('esm_gpu_common/esm_modal.py exists', gpu_canonical.is_file())
+  ev.check('esm_gpu_common/SPEC_GPU.md exists',
+           (SKILLS_DIR / 'esm_gpu_common' / 'SPEC_GPU.md').is_file())
+
+  # In a Modal app, torch/transformers/esm/peft run ONLY on the GPU worker, so
+  # they must never be imported at module TOP LEVEL (only inside a function body
+  # or a `with IMAGE.imports():` block). Importing the app locally to launch it
+  # must need nothing but stdlib + modal.
+  heavy = ('torch', 'transformers', 'peft', 'esm', 'accelerate', 'sklearn',
+           'pandas', 'matplotlib', 'numpy', 'biotite')
+
+  if gpu_canonical.is_file():
+    want_modal = hashlib.sha256(gpu_canonical.read_bytes()).hexdigest()
+    for skill in GPU_SKILLS:
+      d = SKILLS_DIR / skill
+      skill_md = d / 'SKILL.md'
+      ev.check(f'{skill}: SKILL.md exists', skill_md.is_file())
+      ev.check(f'{skill}: citation.bib exists',
+               (d / 'references' / 'citation.bib').is_file())
+
+      vendored = d / 'scripts' / 'esm_modal.py'
+      ev.check(
+          f'{skill}: vendored esm_modal.py in sync',
+          vendored.is_file()
+          and hashlib.sha256(vendored.read_bytes()).hexdigest() == want_modal,
+      )
+
+      scripts = [p for p in (d / 'scripts').glob('*.py')
+                 if p.name != 'esm_modal.py']
+      ev.check(f'{skill}: has a Modal app script', bool(scripts))
+      for script in scripts:
+        src = script.read_text(encoding='utf-8')
+        tree = ast.parse(src)
+
+        # No heavy import at module top level. Walk only top-level statements;
+        # imports inside functions / with-blocks are fine (they run remotely).
+        top_heavy = []
+        for node in tree.body:
+          if isinstance(node, (ast.Import, ast.ImportFrom)):
+            mod = (node.module if isinstance(node, ast.ImportFrom)
+                   else node.names[0].name) or ''
+            if mod.split('.')[0] in heavy:
+              top_heavy.append(mod)
+        ev.check(
+            f'{skill}/{script.name}: no heavy import at module top level',
+            not top_heavy,
+            'stdlib+modal only at top level' if not top_heavy
+            else f'top-level heavy imports: {top_heavy}',
+        )
+
+        # A Modal app: imports modal, defines an app, a GPU function or class,
+        # and a local entrypoint.
+        ev.check(f'{skill}/{script.name}: imports modal', 'import modal' in src)
+        ev.check(f'{skill}/{script.name}: has @app.local_entrypoint',
+                 'local_entrypoint' in src)
+        ev.check(f'{skill}/{script.name}: has a GPU function/class',
+                 '@app.function' in src or '@app.cls' in src)
+        ev.check(f'{skill}/{script.name}: declares a GPU',
+                 'gpu=' in src)
+        ev.check(f'{skill}/{script.name}: PEP 723 header', '# /// script' in src)
+        # Figures must not need a display.
+        if 'matplotlib' in src:
+          ev.check(f'{skill}/{script.name}: matplotlib uses Agg',
+                   "matplotlib.use('Agg')" in src)
+          ev.check(f'{skill}/{script.name}: no plt.show() call',
+                   not re.search(r'^\s*plt\.show\(\)', src, re.MULTILINE))
+
+      if skill_md.is_file():
+        md = skill_md.read_text(encoding='utf-8')
+        ev.check(f'{skill}: frontmatter name+description',
+                 md.startswith('---') and 'name:' in md
+                 and 'description:' in md)
+        # Modal is the substrate; the docs must say so, and must not carry over
+        # any cluster-specific plumbing.
+        ev.check(f'{skill}: documents the Modal workflow', 'modal run' in md)
+        ev.check(f'{skill}: no leftover kubectl/cluster references',
+                 'kubectl' not in md and 'eidf' not in md.lower())
+
+  # Every Modal app must import cleanly with only stdlib + modal available --
+  # that is the whole point of the deferred-import discipline. Importing it
+  # exercises the image build and app/function/entrypoint construction offline
+  # (Modal auth is only needed to actually RUN).
+  print('\n--- GPU (Modal) app import ---')
+  for skill in GPU_SKILLS:
+    for script in (SKILLS_DIR / skill / 'scripts').glob('*.py'):
+      if script.name == 'esm_modal.py':
+        continue
+      proc = subprocess.run(
+          ['uv', 'run', '--no-project', '--quiet', '--with', 'modal',
+           'python', '-c',
+           f'import sys; sys.path.insert(0, {str(script.parent)!r}); '
+           f'import importlib; importlib.import_module({script.stem!r}); '
+           f'print("app import OK")'],
+          capture_output=True, text=True, cwd=REPO, timeout=300,
+      )
+      ev.check(f'{skill}: {script.name} imports (image builds offline)',
+               proc.returncode == 0,
+               'OK' if proc.returncode == 0 else proc.stderr[-200:])
 
   return ev.finish()
 

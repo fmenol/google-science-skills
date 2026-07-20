@@ -1,0 +1,64 @@
+% Primary reference. ESMC is the backbone this skill attaches a LoRA adapter to.
+@article{biohub2026worldmodel,
+  title        = {Language Modeling Materializes a World Model of Protein Biology},
+  author       = {{Biohub ESM Team}},
+  journal      = {bioRxiv},
+  year         = {2026},
+  doi          = {10.64898/2026.06.03.729735},
+  url          = {https://www.biorxiv.org/content/10.64898/2026.06.03.729735},
+  note         = {Introduces ESMC and ESMFold2. The ESMC checkpoints fine-tuned
+                  here (biohub/ESMC-300M, -600M, -6B) are released under this
+                  work.}
+}
+
+% The method. LoRA freezes the backbone and learns low-rank update matrices, so
+% ~0.1-1% of parameters are trainable -- which is what lets a 6B-parameter
+% protein model be adapted on a single GPU.
+@inproceedings{hu2022lora,
+  title        = {{LoRA}: Low-Rank Adaptation of Large Language Models},
+  author       = {Hu, Edward J. and Shen, Yelong and Wallis, Phillip and
+                  Allen-Zhu, Zeyuan and Li, Yuanzhi and Wang, Shean and
+                  Wang, Lu and Chen, Weizhu},
+  booktitle    = {International Conference on Learning Representations (ICLR)},
+  year         = {2022},
+  url          = {https://arxiv.org/abs/2106.09685}
+}
+
+% The implementation. `target_parameters` (needed because ESMC fuses qkv into a
+% bare nn.Parameter rather than an nn.Linear) requires peft >= 0.17.
+@misc{peft2022,
+  title        = {{PEFT}: State-of-the-art Parameter-Efficient Fine-Tuning methods},
+  author       = {Mangrulkar, Sourab and Gugger, Sylvain and Debut, Lysandre and
+                  Belkada, Younes and Paul, Sayak and Bossan, Benjamin},
+  year         = {2022},
+  howpublished = {\url{https://github.com/huggingface/peft}}
+}
+
+% The benchmark reached by `--train-csv care:train`. Task 1 is top-level EC
+% number classification; the default test split is the 30-50% sequence-identity
+% band, a deliberate generalisation test rather than a random split.
+@inproceedings{yang2024care,
+  title        = {{CARE}: a Benchmark Suite for the Classification and Retrieval
+                  of Enzymes},
+  author       = {Yang, Jason and Mora, Ariane and Liu, Shengchao and
+                  Wittmann, Bruce J. and Anandkumar, Anima and
+                  Arnold, Frances H. and Yue, Yisong},
+  booktitle    = {Advances in Neural Information Processing Systems (NeurIPS)
+                  Datasets and Benchmarks Track},
+  year         = {2024},
+  url          = {https://zenodo.org/records/14004425},
+  note         = {Dataset DOI 10.5281/zenodo.14004425.}
+}
+
+% Why bfloat16 autocast and no GradScaler: bf16 carries fp32's exponent range,
+% so loss scaling is unnecessary and would be incorrect.
+@article{kalamkar2019bfloat16,
+  title        = {A Study of {BFLOAT16} for Deep Learning Training},
+  author       = {Kalamkar, Dhiraj and Mudigere, Dheevatsa and Mellempudi, Naveen
+                  and Das, Dipankar and Banerjee, Kunal and Avancha, Sasikanth
+                  and Vooturi, Dharma Teja and Jammalamadaka, Nataraj and
+                  Huang, Jianyu and Yuen, Hector and others},
+  journal      = {arXiv preprint arXiv:1905.12322},
+  year         = {2019},
+  url          = {https://arxiv.org/abs/1905.12322}
+}

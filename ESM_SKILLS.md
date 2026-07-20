@@ -61,16 +61,16 @@ skill itself flagged: that skill can only *measure* secondary structure from a
 known structure, and only as a 3-state (H/E/C) biotite approximation. This one
 *predicts* genuine 8-state SS8 from sequence.
 
-### Deliberately NOT built
+### Previously NOT built — now covered by the GPU skills
 
-| Tutorial | Why not |
-|---|---|
-| `esmc_finetune.ipynb` | LoRA fine-tuning needs gradients through the backbone: local weights + a CUDA GPU. **There is no remote-gradient endpoint.** Building it would violate the "no model downloads" constraint and could not be made to work. |
-| `binder_design.py` (the *optimisation* half) | Backpropagates structural losses through the ESMFold2 trunk; needs an H100 with 27–51 GB VRAM and Modal. Its **scoring/selection half is reachable**, and is skill #6. |
+| Tutorial | Why the API could not reach it | Now |
+|---|---|---|
+| `esmc_finetune.ipynb` | LoRA fine-tuning needs gradients through the backbone. **There is no remote-gradient endpoint** — the API returns detached JSON with no autograd graph. | **#13 `esmc-finetune-lora`** |
+| `binder_design.py` (the *optimisation* half) | Backpropagates structural losses through the ESMFold2 trunk; needs 27–51 GB VRAM. It also needs the distogram, which `include_distogram=True` refuses with HTTP 422. | **#14 `esmfold2-binder-design`** |
+| `gfp_design.ipynb` *at its real scale* | Runs against the API, but the notebook warns some prompts need **thousands of generations**. At 1 credit each against a 100/day allowance that is a month of wall-clock. | **#15 `esm3-design-campaign`** |
 
-Rather than ship two skills that could never pass an eval, these are documented
-as out of scope. Skill #6's `SKILL.md` says so explicitly, and points users at
-#7/#8 to *generate* candidates before ranking them.
+These three were correctly out of scope for an API-only bundle. They are in
+scope on rented GPUs — see [§ The GPU skills](#the-gpu-skills-100-tutorial-coverage).
 
 ---
 
@@ -115,6 +115,116 @@ reason. If the API later exposes the gated ESM3 models (`medium`, `large`,
 `multimer` — currently HTTP 403) or a gradient endpoint, that would open genuinely
 new skills (multimer design, the binder-design optimisation loop); nothing more
 is reachable on the current key.
+
+---
+
+## The GPU skills — 100 % tutorial coverage
+
+Three skills (#13–#15) run the **open ESM weights on GPUs rented by the second
+through [Modal](https://modal.com)** instead of calling the hosted API. They
+close the last gaps, taking the bundle from 10.5/12 tutorials to **12/12**. No
+cluster, no persistent infrastructure — a job spins up a GPU, runs, returns its
+result, and the GPU is released.
+
+| # | Skill | Source tutorial | What only a GPU makes possible |
+|---|---|---|---|
+| 13 | `esmc-finetune-lora` | `esmc_finetune.ipynb` | **Gradients.** LoRA + a fresh head on a frozen ESMC. Classification or regression on your own labels. |
+| 14 | `esmfold2-binder-design` | `binder_design.py` (optimisation half) | **Backprop through the folding trunk.** Algorithms 11–15: 150 steps of soft-logit optimisation on distogram contact/globularity losses with an ESMC-6B naturalness regulariser, then multi-critic iPTM scoring. |
+| 15 | `esm3-design-campaign` | `gfp_design.ipynb` at scale | **Unmetered inference.** Sharded motif-scaffolding with structural rejection sampling — the thousands of generations the protocol actually needs. |
+
+### Architecture: one Modal app per skill
+
+Modal draws the local/remote boundary for you, so there is no manifest to build
+and no control/payload split to maintain by hand. Each skill is a single file:
+
+* Code in an `@app.function` / `@app.cls` runs **remotely on the GPU**, inside a
+  container image defined once in the shared `esm_modal.py`. This is where torch,
+  transformers and esm live.
+* Code in `@app.local_entrypoint()` runs **locally** — it is the CLI. It touches
+  only stdlib + the `modal` client, calls `.remote()` / `.map()`, and writes the
+  returned results to a local directory.
+* Heavy imports sit inside `with IMAGE.imports():` so importing the app locally
+  (to launch it) never needs torch.
+
+Invoke with `modal run scripts/<name>.py --arg value`. `evals/test_offline.py`
+enforces the discipline — no heavy import at module top level — and *imports
+every app offline* to prove its image builds and its functions construct with
+nothing but stdlib + modal.
+
+### Verified facts, not assumptions
+
+Each was checked against the live service rather than inferred:
+
+* **The BioHub `transformers` fork is mandatory.** `transformers.models.esmc`
+  and `.esmfold2` are absent from every PyPI release — confirmed against 4.57.1
+  and 5.14.1. The `biohub/*` Hub repos ship no `modeling_*.py` and no `auto_map`,
+  so `trust_remote_code` cannot substitute. Pinned to commit `ef32577f`, not
+  `@main`.
+* **`esm` and the pinned fork conflict under one `pip install`.** `esm`'s
+  pyproject declares `transformers @ ...@main`; asking for that plus a
+  commit-pinned transformers is two direct URLs for one package, and pip exits
+  `ResolutionImpossible`. Found by running on a GPU, not by reading. Every image
+  installs `esm` first, then `--force-reinstall --no-deps` the pinned commit.
+* **The weights are public and ungated.** Every checkpoint reports `gated=false`
+  on the Hub, so no `HF_TOKEN` is required. An optional Modal Secret named
+  `huggingface` lifts the per-IP anonymous-pull rate limit; it is referenced by
+  name only, so no token value appears in any file.
+
+### What GPUs still do NOT unlock
+
+**`esm3-medium`, `esm3-large` and `esm3-*-multimer` remain unreachable.** The
+only public ESM3 weights anywhere are the 1.4 B `esm3-sm-open-v1` — checked
+directly against the Hub. **The 403 is a licensing decision, not a
+serving-capacity one, and renting GPUs does not route around it.**
+
+This matters for two tutorials, and both skills say so in their `SKILL.md`:
+
+* `gfp_design.ipynb` targets the 7 B variant. Skill #15 runs the identical
+  protocol at 1.4 B, where pass rates through the two RMSD gates are materially
+  lower. Volume is the compensation, not equivalence.
+* `fold_invfold.py` hard-wires `esm3-medium-2024-08`; skill #8 already covers the
+  capability via `generate(track='sequence', coordinates=…)`.
+
+### Verification status of the GPU skills
+
+Held to the same standard as the rest of the bundle: what was actually run is
+stated, and what was not is not implied. The **dependency stack and the science**
+were verified end-to-end on live GPUs (A100-40GB and A100-80GB) during
+development; the Modal control layer wraps that verified payload code.
+
+**Verified on live GPUs:**
+
+* The shared environment builds and is correct:
+  `python 3.12 · torch 2.8 (bf16 ✓) · transformers 4.57.6 (the pinned fork)
+  · models.esmc ✓ · models.esmfold2 ✓ · ESMCForSequenceClassification ✓
+  · peft 0.17.1 · esm 3.3.0 · ESM3 importable ✓`.
+* **`esmc-finetune-lora`**, end to end: CARE stages to **182 683 train / 1 846
+  val / 7 classes**; LoRA injects **1.37 %** of parameters; 30 steps in **44 s at
+  12.4 GiB**; step-0 loss **1.9463 ≈ ln(7)**; the `classes_never_predicted` guard
+  fires on the imbalanced set as designed.
+* **`esmfold2-binder-design`**, a minibinder vs PD-L1: models load in 275 s, 150
+  steps in 722 s at **19.6 GiB**, total loss **8.00 → 3.32**, result **mean iPTM
+  0.898** across four critics; the 158-residue binder has **0 cysteines**, the
+  hard check the protocol is really running.
+* **`esm3-design-campaign`**, GFP preset, 600 generations: **17/17 pinned tokens
+  preserved**; yield 0/600 with best constrained-site RMSD **1.54 Å against the
+  1.5 Å gate** (the curve: 3.08 Å at 20 → 2.58 Å at 150 → 1.54 Å at 600).
+
+**Defects found by running, not reading** (all fixed): the `esm`/transformers pip
+conflict; `target_modules=['out_proj']` failing on a Transformer-Engine build
+(routed through `target_parameters`); `lora_dropout` incompatible with
+`target_parameters`; `ESMProtein.from_pdb` needing a path not an accession; a GFP
+preset off-by-one (token vs residue indices) that left two motif residues
+unpinned; and the ranked table showing the target rather than the binder.
+
+**Not verified on Modal specifically:** the jobs above ran on directly-managed
+GPUs, and the payload code is identical, but the Modal image build and remote
+invocation have not been exercised here (Modal is a cloud service needing an
+account). The image recipe follows BioHub's own production Modal image for
+`binder_design.py`, and every app is imported offline in the test suite to prove
+it constructs. Run one small job (`modal run` a 30-step finetune) to confirm the
+image builds in your account before a large campaign.
+
 
 ## Documentation
 

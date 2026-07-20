@@ -1,0 +1,71 @@
+% Primary reference. ESM3, and the esmGFP campaign whose protocol this skill
+% generalises into a sharded rejection-sampling loop.
+@article{hayes2025esm3,
+  title        = {Simulating 500 million years of evolution with a language model},
+  author       = {Hayes, Thomas and Rao, Roshan and Akin, Halil and
+                  Sofroniew, Nicholas J. and Oktay, Deniz and Lin, Zeming and
+                  Verkuil, Robert and Tran, Vincent Q. and Deaton, Jonathan and
+                  Wiggert, Marius and others},
+  journal      = {Science},
+  volume       = {387},
+  number       = {6736},
+  pages        = {850--858},
+  year         = {2025},
+  doi          = {10.1126/science.ads0018},
+  note         = {Introduces ESM3 and esmGFP. The published campaign used the
+                  7B variant; only the 1.4B esm3-sm-open-v1 weights are public,
+                  so this skill runs the protocol at reduced pass rate and
+                  compensates with volume.}
+}
+
+@article{biohub2026worldmodel,
+  title        = {Language Modeling Materializes a World Model of Protein Biology},
+  author       = {{Biohub ESM Team}},
+  journal      = {bioRxiv},
+  year         = {2026},
+  doi          = {10.64898/2026.06.03.729735},
+  url          = {https://www.biorxiv.org/content/10.64898/2026.06.03.729735}
+}
+
+% The structural template used by the --preset gfp protocol, and the source of
+% the pinned chromophore positions.
+@article{barondeau2003gfp,
+  title        = {Understanding {GFP} chromophore biosynthesis: controlled
+                  rearrangement in the {GFP} scaffold},
+  author       = {Barondeau, David P. and Putnam, Christopher D. and
+                  Kassmann, Carey J. and Tainer, John A. and Getzoff, Elizabeth D.},
+  journal      = {Biochemistry},
+  volume       = {44},
+  number       = {6},
+  pages        = {1960--1970},
+  year         = {2005},
+  doi          = {10.1021/bi0479205},
+  note         = {PDB 1QY3, the template fetched by --preset gfp.}
+}
+
+% The Thr-Tyr-Gly chromophore triad that the motif prompt pins, and the origin
+% of GFP as a scaffold for design.
+@article{ormo1996gfp,
+  title        = {Crystal structure of the {Aequorea victoria} green fluorescent
+                  protein},
+  author       = {Orm{\"o}, Mats and Cubitt, Andrew B. and Kallio, Karen and
+                  Gross, Larry A. and Tsien, Roger Y. and Remington, S. James},
+  journal      = {Science},
+  volume       = {273},
+  number       = {5280},
+  pages        = {1392--1395},
+  year         = {1996},
+  doi          = {10.1126/science.273.5280.1392}
+}
+
+% The superposition algorithm behind both RMSD gates.
+@article{kabsch1976,
+  title        = {A solution for the best rotation to relate two sets of vectors},
+  author       = {Kabsch, Wolfgang},
+  journal      = {Acta Crystallographica Section A},
+  volume       = {32},
+  number       = {5},
+  pages        = {922--923},
+  year         = {1976},
+  doi          = {10.1107/S0567739476001873}
+}
