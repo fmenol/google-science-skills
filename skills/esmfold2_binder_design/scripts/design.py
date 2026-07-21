@@ -101,6 +101,65 @@ def strip_modal(src: str) -> str:
   return head
 
 
+def _load_designer(use_scaling_critics: bool):
+  """Fetch + strip upstream, then load ESMC-6B + inversion + hero critics.
+
+  Shared by the Modal class and the local backend. Returns the loaded
+  `ESMFold2Design` instance.
+  """
+  import time
+  import types
+  import urllib.request
+
+  with urllib.request.urlopen(UPSTREAM_URL, timeout=120) as resp:
+    src = strip_modal(resp.read().decode('utf-8'))
+  mod = types.ModuleType('binder_design')
+  exec(compile(src, 'binder_design.py', 'exec'), mod.__dict__)  # noqa: S102
+  t0 = time.time()
+  designer = mod.ESMFold2Design()
+  designer.load(use_scaling_critics)
+  print(f'models loaded in {time.time() - t0:.0f}s', flush=True)
+  return designer
+
+
+def _design_one(designer, cfg: dict) -> dict:
+  """Run one design (one seed) and return a JSON-safe result.
+
+  Shared by the Modal class and the local backend.
+  """
+  import time
+  import torch
+
+  is_ab = {'true': True, 'false': False, 'auto': None}[cfg['is_antibody']]
+  torch.cuda.reset_peak_memory_stats()
+  t0 = time.time()
+  best_sequences, trajectory, critic_results = designer.design(
+      target_name=cfg['target_name'], binder_name=cfg['binder_name'],
+      target_sequence=cfg['target_sequence'] or None,
+      binder_sequence=cfg['binder_sequence'] or None,
+      is_antibody=is_ab, seed=cfg['seed'], batch_size=cfg['batch_size'],
+  )
+  peak = torch.cuda.max_memory_allocated() / (1024 ** 3)
+
+  rows = _serialise_critics(critic_results)
+  ranked = _rank(rows)
+  designs = []
+  for i, s in enumerate(best_sequences):
+    target, _, binder = s.partition('|')
+    designs.append({'batch_idx': i, 'target': target, 'binder': binder})
+  traj = {str(k): {kk: (float(vv) if isinstance(vv, (int, float)) else str(vv))
+                   for kk, vv in v.items()}
+          for k, v in trajectory.items()}
+  return {
+      'status': 'ok', 'seed': cfg['seed'],
+      'target_name': cfg['target_name'], 'binder_name': cfg['binder_name'],
+      'esm_commit': ESM_COMMIT, 'gpu_name': torch.cuda.get_device_name(0),
+      'peak_vram_gib': peak, 'design_seconds': time.time() - t0,
+      'designs': designs, 'ranked': ranked, 'trajectory': traj,
+      'critic_scores': rows,
+  }
+
+
 @app.cls(
     image=IMAGE,
     gpu=em.GPUS['a100-80'],
@@ -116,55 +175,11 @@ class Designer:
 
   @modal.enter()
   def load(self):
-    """Fetch + strip upstream, then load ESMC-6B + inversion + hero critics."""
-    import time
-    import types
-    import urllib.request
-
-    with urllib.request.urlopen(UPSTREAM_URL, timeout=120) as resp:
-      src = strip_modal(resp.read().decode('utf-8'))
-    mod = types.ModuleType('binder_design')
-    exec(compile(src, 'binder_design.py', 'exec'), mod.__dict__)  # noqa: S102
-    self._mod = mod
-    t0 = time.time()
-    self.designer = mod.ESMFold2Design()
-    self.designer.load(self.use_scaling_critics)
-    print(f'models loaded in {time.time() - t0:.0f}s', flush=True)
+    self.designer = _load_designer(self.use_scaling_critics)
 
   @modal.method()
   def design_one(self, cfg: dict) -> dict:
-    """Run one design (one seed) and return a JSON-safe result."""
-    import time
-    import torch
-
-    is_ab = {'true': True, 'false': False, 'auto': None}[cfg['is_antibody']]
-    torch.cuda.reset_peak_memory_stats()
-    t0 = time.time()
-    best_sequences, trajectory, critic_results = self.designer.design(
-        target_name=cfg['target_name'], binder_name=cfg['binder_name'],
-        target_sequence=cfg['target_sequence'] or None,
-        binder_sequence=cfg['binder_sequence'] or None,
-        is_antibody=is_ab, seed=cfg['seed'], batch_size=cfg['batch_size'],
-    )
-    peak = torch.cuda.max_memory_allocated() / (1024 ** 3)
-
-    rows = _serialise_critics(critic_results)
-    ranked = _rank(rows)
-    designs = []
-    for i, s in enumerate(best_sequences):
-      target, _, binder = s.partition('|')
-      designs.append({'batch_idx': i, 'target': target, 'binder': binder})
-    traj = {str(k): {kk: (float(vv) if isinstance(vv, (int, float)) else str(vv))
-                     for kk, vv in v.items()}
-            for k, v in trajectory.items()}
-    return {
-        'status': 'ok', 'seed': cfg['seed'],
-        'target_name': cfg['target_name'], 'binder_name': cfg['binder_name'],
-        'esm_commit': ESM_COMMIT, 'gpu_name': torch.cuda.get_device_name(0),
-        'peak_vram_gib': peak, 'design_seconds': time.time() - t0,
-        'designs': designs, 'ranked': ranked, 'trajectory': traj,
-        'critic_scores': rows,
-    }
+    return _design_one(self.designer, cfg)
 
 
 # --------------------------------------------------------------------------
@@ -229,6 +244,15 @@ def _rank(rows: list[dict]) -> list[dict]:
 # --------------------------------------------------------------------------
 
 
+def _cfgs_for(a: dict) -> list[dict]:
+  """Build one config per seed from a params mapping (shared by both backends)."""
+  return [dict(target_name=a['target_name'], binder_name=a['binder_name'],
+               target_sequence=a['target_sequence'],
+               binder_sequence=a['binder_sequence'],
+               is_antibody=a['is_antibody'], seed=s, batch_size=a['batch_size'])
+          for s in range(a['seed'], a['seed'] + a['num_seeds'])]
+
+
 @app.local_entrypoint()
 def main(
     target_name: str,
@@ -244,23 +268,24 @@ def main(
 ):
   """Design de novo binders on Modal GPUs and collect them ranked by iPTM.
 
-  One GPU container per seed (fanned out with Modal `.map`); every design from
-  every seed is pooled and ranked together by mean interface iPTM.
+  This is the **Modal** entrypoint (`modal run scripts/design.py ...`), one GPU
+  container per seed (fanned out with `.map`). To run on a verified local GPU,
+  invoke `python scripts/design.py ...` instead (the `__main__` backend below);
+  a local run is serial over seeds in one process. Note the local backend needs
+  the heavy folding stack (flash-attn / transformer-engine / ANARCI) installed —
+  Modal is usually the easier path for this skill.
   """
   _validate(target_name, target_sequence, binder_name, binder_sequence,
             is_antibody)
-
-  seeds = list(range(seed, seed + num_seeds))
-  cfgs = [dict(target_name=target_name, binder_name=binder_name,
-               target_sequence=target_sequence, binder_sequence=binder_sequence,
-               is_antibody=is_antibody, seed=s, batch_size=batch_size)
-          for s in seeds]
-
+  cfgs = _cfgs_for(locals())
   print(f'designing {num_seeds} seed(s) on {em.GPUS["a100-80"]} '
         f'(one container per seed)...')
   designer = Designer(use_scaling_critics=use_scaling_critics)
-  results = list(designer.design_one.map(cfgs))
+  _collect(list(designer.design_one.map(cfgs)), out)
 
+
+def _collect(results: list, out: str) -> None:
+  """Write per-seed results + pooled ranking (shared by both backends)."""
   outdir = pathlib.Path(out)
   outdir.mkdir(parents=True, exist_ok=True)
   (outdir / 'structures').mkdir(exist_ok=True)
@@ -316,10 +341,63 @@ def _validate(tname, tseq, bname, bseq, is_ab):
     raise SystemExit(f'{bname!r} is an antibody scaffold but --is-antibody is '
                      f'false; that mismatch trips an upstream assertion.')
   if is_ab != 'false':
-    # The Modal image ships ANARCI + HMMER, so the CDR-annotation path that was
-    # impossible on the pip-only cluster image now runs. But antibody design
-    # has NOT been verified end-to-end here -- only minibinder has. Allowed,
-    # with a clear caveat, rather than blocked.
+    # The image ships ANARCI + HMMER, so the CDR-annotation path runs. But
+    # antibody design has NOT been verified end-to-end here -- only minibinder
+    # has. Allowed, with a clear caveat, rather than blocked.
     print('WARNING: antibody design is available (ANARCI/HMMER are in the '
           'image) but UNVERIFIED in this skill; only minibinder design has '
           'been checked end-to-end. Treat results with extra caution.')
+
+
+# --------------------------------------------------------------------------
+# Local backend (verified GPU, no Modal)
+# --------------------------------------------------------------------------
+
+
+def _run_local(a: dict) -> None:
+  """Design in-process on a verified local GPU, serial over seeds."""
+  em.require_local_gpu()
+  _validate(a['target_name'], a['target_sequence'], a['binder_name'],
+            a['binder_sequence'], a['is_antibody'])
+  designer = _load_designer(a['use_scaling_critics'])
+  print(f'designing {a["num_seeds"]} seed(s) locally on the detected GPU...')
+  results = [_design_one(designer, cfg) for cfg in _cfgs_for(a)]
+  _collect(results, a['out'])
+
+
+if __name__ == '__main__':
+  import argparse
+
+  # LOCAL backend: `python scripts/design.py ...` runs on a verified local GPU.
+  # `modal run scripts/design.py ...` uses the Modal entrypoint above. The local
+  # path needs the heavy folding stack installed; Modal is usually easier here.
+  ap = argparse.ArgumentParser(description='ESMFold2 binder design (local GPU).')
+  ap.add_argument('--target-name', required=True)
+  ap.add_argument('--binder-name', default='minibinder')
+  ap.add_argument('--target-sequence', default='')
+  ap.add_argument('--binder-sequence', default='')
+  ap.add_argument('--is-antibody', default='false',
+                  choices=('true', 'false', 'auto'))
+  ap.add_argument('--seed', type=int, default=0)
+  ap.add_argument('--num-seeds', type=int, default=8)
+  ap.add_argument('--batch-size', type=int, default=1)
+  ap.add_argument('--use-scaling-critics', action='store_true')
+  ap.add_argument('--out', default='./designs')
+  ap.add_argument('--backend', default='auto',
+                  choices=('auto', 'local', 'modal'),
+                  help='auto: local GPU if verified, else Modal.')
+  args = vars(ap.parse_args())
+
+  if em.choose_backend(args['backend']) == 'local':
+    _run_local(args)
+  else:
+    parts = []
+    for k, v in args.items():
+      if k in ('backend', 'use_scaling_critics') or v in ('', None):
+        continue
+      parts.append(f'--{k.replace("_", "-")} {v!r}')
+    if args['use_scaling_critics']:
+      parts.append('--use-scaling-critics')
+    raise SystemExit(
+        'No local GPU verified, so this must run on Modal. Use:\n\n'
+        f'  modal run scripts/design.py {" ".join(parts)}\n')

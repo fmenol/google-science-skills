@@ -32,6 +32,11 @@ description: >
     credentials protocol in the `credentials` skill to check for and request
     this key.
 
+> **Compute options.** This skill uses the hosted Biohub API (`BIOHUB_API_KEY` in `~/.env`). To run equivalent capabilities on the open
+> weights instead — on [Modal](https://modal.com), or on a local GPU if one is verified available — see
+> [compute-options.md](../esm_common/references/compute-options.md).
+
+
 ## Overview
 
 When ESMC reads a protein, each residue becomes a dense embedding vector. Those

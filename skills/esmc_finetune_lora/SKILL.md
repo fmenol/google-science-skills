@@ -23,9 +23,16 @@ description: >
     exist in the workspace root then (1) prominently notify the user to check the
     terms at https://biohub.org/acceptable-use-policy/ and https://biohub.ai/,
     then (2) create the file recording the notification text and timestamp.
-3.  **Modal**: `pip install modal` and authenticate once with `modal token new`
-    (or `modal setup`). A Modal account has a free monthly compute credit that
-    covers small runs. Nothing else to install or configure.
+3.  **A GPU, one of two ways** (see
+    [compute-options.md](../esm_common/references/compute-options.md)):
+    * **Modal** (default; no GPU of your own): `pip install modal` and
+      `modal token new`. A Modal account has a free monthly compute credit that
+      covers small runs. Run with `modal run scripts/finetune.py ...`.
+    * **A local GPU**, only if one is verified available (a workstation or GPU
+      container where `torch.cuda.is_available()` is true and the ESM deps are
+      installed — see compute-options for the install command). Run with
+      `python scripts/finetune.py ...`; it verifies the GPU and refuses to
+      silently fall back to CPU.
 4.  **No `BIOHUB_API_KEY` needed.** This skill never calls the hosted API and
     spends **zero Biohub credits**. The weights are public and ungated.
 
@@ -72,10 +79,20 @@ All commands run from the skill directory, with the Modal CLI.
 into a Modal volume the first time, then hit the cache forever after.
 
 ```bash
+# On Modal (rented GPU):
 modal run scripts/finetune.py \
   --train-csv care:train --test-csv care:test \
   --steps 1000 --out ./results/care-1k
+
+# On a local GPU (only if one is verified available):
+python scripts/finetune.py \
+  --train-csv care:train --test-csv care:test \
+  --steps 1000 --out ./results/care-1k
 ```
+
+Both accept the same flags. `python scripts/finetune.py --backend auto`
+(the default) runs locally if a GPU is verified and otherwise prints the exact
+`modal run` command to use.
 
 ### Train on your own labelled data
 

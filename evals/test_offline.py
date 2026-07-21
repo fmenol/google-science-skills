@@ -294,12 +294,21 @@ def main() -> int:
 
   shared_ref = SKILLS_DIR / 'esm_common' / 'references' / 'esm-biohub-api.md'
   ev.check('shared ESM/Biohub API reference exists', shared_ref.is_file())
+  # The single shared "how to provide compute" reference (Biohub key vs Modal vs
+  # local GPU), linked from every API skill.
+  compute_ref = SKILLS_DIR / 'esm_common' / 'references' / 'compute-options.md'
+  ev.check('shared compute-options reference exists', compute_ref.is_file())
 
   for skill in SKILLS:
     d = SKILLS_DIR / skill
     skill_md = d / 'SKILL.md'
     if not skill_md.is_file():
       continue
+
+    # Every API skill points the user at the compute options (Biohub key by
+    # default; Modal or a verified local GPU as the alternative).
+    ev.check(f'{skill}: points to compute-options.md',
+             'compute-options.md' in skill_md.read_text(encoding='utf-8'))
 
     # Local doc links in SKILL.md resolve (skip http(s), anchors, and any
     # example links that live inside fenced code blocks).
@@ -430,6 +439,13 @@ def main() -> int:
         ev.check(f'{skill}/{script.name}: declares a GPU',
                  'gpu=' in src)
         ev.check(f'{skill}/{script.name}: PEP 723 header', '# /// script' in src)
+        # A local backend gated on a verified GPU: a __main__ path that routes
+        # through choose_backend / require_local_gpu, so `python <app>.py` runs
+        # on a local GPU only when one is actually available.
+        ev.check(f'{skill}/{script.name}: has a local (__main__) backend',
+                 "__name__ == '__main__'" in src)
+        ev.check(f'{skill}/{script.name}: gates local run on a verified GPU',
+                 'choose_backend' in src or 'require_local_gpu' in src)
         # Figures must not need a display.
         if 'matplotlib' in src:
           ev.check(f'{skill}/{script.name}: matplotlib uses Agg',

@@ -21,8 +21,14 @@ description: >
     not exist in the workspace root then (1) prominently notify the user to check
     the terms at https://biohub.org/acceptable-use-policy/ and https://biohub.ai/,
     then (2) create the file recording the notification text and timestamp.
-3.  **Modal**: `pip install modal` and `modal token new`. ESM3-open is 1.4 B and
-    the default GPU is `a100-40`; even a `t4` runs it.
+3.  **A GPU, one of two ways** (see
+    [compute-options.md](../esm_common/references/compute-options.md)):
+    * **Modal** (default; no GPU of your own): `pip install modal` and
+      `modal token new`. ESM3-open is 1.4 B, so the default `a100-40` is ample
+      (even a `t4` runs it). `modal run scripts/campaign.py ...`.
+    * **A local GPU**, only if verified available (the ESMC/ESM3 deps install
+      cleanly — see compute-options). `python scripts/campaign.py ...`; a local
+      run uses one process, so `--num-shards` is ignored there.
 4.  **No `BIOHUB_API_KEY` needed.** Zero Biohub credits, unmetered inference.
 
 ## Overview

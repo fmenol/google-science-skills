@@ -32,6 +32,11 @@ description: >
     protocol in the `credentials` skill to check for the key. Register at
     https://biohub.ai/developer-console/api-keys.
 
+> **Compute options.** This skill uses the hosted Biohub API (`BIOHUB_API_KEY` in `~/.env`). To run equivalent capabilities on the open
+> weights instead — on [Modal](https://modal.com), or on a local GPU if one is verified available — see
+> [compute-options.md](../esm_common/references/compute-options.md).
+
+
 ## Overview
 
 ESM3 is promptable on five parallel, residue-aligned tracks. You can hold any

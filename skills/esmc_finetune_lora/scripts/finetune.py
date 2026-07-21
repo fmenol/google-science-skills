@@ -98,21 +98,26 @@ CARE_SPLITS = {
     timeout=6 * 3600,
 )
 def train_remote(cfg: dict, train_bytes: bytes, test_bytes: bytes | None) -> dict:
+  """Modal wrapper around `_train`. Runs on a rented GPU."""
+  return _train(cfg, train_bytes, test_bytes)
+
+
+def _train(cfg: dict, train_bytes: bytes, test_bytes: bytes | None) -> dict:
   """Fine-tune ESMC with LoRA and return the adapter, metrics and figures.
 
-  Runs on the GPU. Returns a JSON-safe dict; the adapter and PNGs are
-  base64-encoded inside it so the local entrypoint can write them to disk with
-  no shared filesystem.
+  This is the shared core: `train_remote` calls it on a Modal GPU, and the
+  `local` backend calls it in-process on a verified local GPU. It uses the
+  module-level heavy imports (torch, etc.), which are defined by the
+  `IMAGE.imports()` block both remotely (in the container) and locally (when the
+  deps are installed). Returns a JSON-safe dict; the adapter and PNGs are
+  base64-encoded inside it so the caller can write them to disk with no shared
+  filesystem.
 
   Args:
-    cfg: All hyperparameters and column names (see the local entrypoint).
+    cfg: All hyperparameters and column names.
     train_bytes: The training table as raw bytes, or b'' to use `cfg['train']`
       as a `care:` spec / volume path.
     test_bytes: The test table as raw bytes, or None.
-
-  Returns:
-    A result dict with metrics, provenance, and base64 blobs for `adapter.zip`
-    and the figures.
   """
   import io
   import zipfile
@@ -315,14 +320,22 @@ def train_remote(cfg: dict, train_bytes: bytes, test_bytes: bytes | None) -> dic
 # --------------------------------------------------------------------------
 
 
+def _care_root() -> pathlib.Path:
+  """Where to cache CARE: the Modal data volume if mounted, else a local dir."""
+  vol = pathlib.Path(em.DATA_DIR)
+  if vol.is_dir():          # On Modal the volume is mounted at /data.
+    return vol / 'CARE'
+  return pathlib.Path.home() / '.cache' / 'esm-data' / 'CARE'
+
+
 def _resolve_care(spec: str) -> str:
-  """Resolve `care:<split>` to a path in the data volume, downloading once."""
+  """Resolve `care:<split>` to a path, downloading once into the cache."""
   if not spec.startswith('care:'):
     return spec
   split = spec.split(':', 1)[1]
   if split not in CARE_SPLITS:
     raise SystemExit(f'unknown CARE split {split!r}')
-  root = pathlib.Path(em.DATA_DIR) / 'CARE'
+  root = _care_root()
   target = root / CARE_SPLITS[split]
   if target.is_file():
     return str(target)
@@ -336,7 +349,10 @@ def _resolve_care(spec: str) -> str:
     tmp.rename(zpath)
   with zipfile.ZipFile(zpath) as zf:
     zf.extractall(root)
-  em.data_volume.commit()  # Persist for the next run.
+  try:
+    em.data_volume.commit()  # Persist for the next run (Modal only; no-op else).
+  except Exception:  # noqa: BLE001
+    pass
   if not target.is_file():
     raise SystemExit(f'CARE archive missing {CARE_SPLITS[split]}')
   return str(target)
@@ -483,6 +499,30 @@ def _plot_confusion(cm, names):
 # --------------------------------------------------------------------------
 
 
+def _build_cfg(a: dict) -> dict:
+  """Assemble the config dict shared by both backends from a params mapping."""
+  return dict(
+      train=a['train_csv'], test=a['test_csv'], model=a['model'],
+      seq_col=a['seq_col'], label_col=a['label_col'], task=a['task'],
+      steps=a['steps'], batch_size=a['batch_size'], lr=a['lr'],
+      max_seq_len=a['max_seq_len'], val_every=a['val_every'],
+      val_fraction=a['val_fraction'], lora_rank=a['lora_rank'],
+      lora_alpha=a['lora_alpha'], lora_dropout=a['lora_dropout'],
+      seed=a['seed'], eval_batch_size=a['eval_batch_size'],
+  )
+
+
+def _finish(res: dict, out: str) -> None:
+  """Write results locally and print the summary (shared by both backends)."""
+  outdir = pathlib.Path(out)
+  outdir.mkdir(parents=True, exist_ok=True)
+  if res.get('status') != 'ok':
+    print(f'FAILED: {res.get("error")}')
+    raise SystemExit(1)
+  _write_results(res, outdir)
+  _summarise(res)
+
+
 @app.local_entrypoint()
 def main(
     train_csv: str,
@@ -506,33 +546,19 @@ def main(
 ):
   """Fine-tune ESMC with LoRA on a Modal GPU and save the adapter locally.
 
-  `--train-csv` / `--test-csv` accept a local file (uploaded to the worker),
-  a path inside the mounted data volume, or `care:train` / `care:test` for the
-  CARE enzyme benchmark used by the upstream tutorial.
+  This is the **Modal** entrypoint (`modal run scripts/finetune.py ...`). To run
+  on a verified local GPU instead, invoke the script directly:
+  `python scripts/finetune.py ...` (see the `__main__` backend below).
+
+  `--train-csv` / `--test-csv` accept a local file (uploaded to the worker), a
+  path inside the mounted data volume, or `care:train` / `care:test` for the
+  CARE enzyme benchmark.
   """
-  cfg = dict(
-      train=train_csv, test=test_csv, model=model, seq_col=seq_col,
-      label_col=label_col, task=task, steps=steps, batch_size=batch_size,
-      lr=lr, max_seq_len=max_seq_len, val_every=val_every,
-      val_fraction=val_fraction, lora_rank=lora_rank, lora_alpha=lora_alpha,
-      lora_dropout=lora_dropout, seed=seed, eval_batch_size=eval_batch_size,
-  )
-  # A local file is read and shipped as bytes; a `care:` spec or volume path is
-  # left for the worker to resolve.
+  cfg = _build_cfg(locals())
   train_bytes = _maybe_read(train_csv)
   test_bytes = _maybe_read(test_csv) if test_csv else None
-
   print(f'launching on Modal GPU ({em.GPUS["a100-40"]})...')
-  res = train_remote.remote(cfg, train_bytes, test_bytes)
-
-  outdir = pathlib.Path(out)
-  outdir.mkdir(parents=True, exist_ok=True)
-  if res.get('status') != 'ok':
-    print(f'FAILED: {res.get("error")}')
-    raise SystemExit(1)
-
-  _write_results(res, outdir)
-  _summarise(res)
+  _finish(train_remote.remote(cfg, train_bytes, test_bytes), out)
 
 
 def _maybe_read(spec: str) -> bytes:
@@ -575,3 +601,62 @@ def _summarise(res: dict) -> None:
       print(f'  WARNING: {len(never)} class(es) never predicted: {never}. '
             f'Accuracy is not a sufficient summary here -- read macro-F1 and '
             f'per-class recall in result.json.')
+
+
+# --------------------------------------------------------------------------
+# Local backend (the `local` path — verified GPU, no Modal)
+# --------------------------------------------------------------------------
+
+
+def _run_local(a: dict) -> None:
+  """Fine-tune in-process on a verified local GPU."""
+  em.require_local_gpu()
+  cfg = _build_cfg(a)
+  train_bytes = _maybe_read(a['train_csv'])
+  test_bytes = _maybe_read(a['test_csv']) if a['test_csv'] else None
+  print('running locally on the detected GPU...')
+  _finish(_train(cfg, train_bytes, test_bytes), a['out'])
+
+
+if __name__ == '__main__':
+  import argparse
+
+  # This path is the LOCAL backend: `python scripts/finetune.py ...` runs on a
+  # verified local GPU. `modal run scripts/finetune.py ...` uses the Modal
+  # entrypoint above instead. `--backend auto` (default) prefers a local GPU if
+  # one is verified, else prints the exact `modal run` command to use.
+  ap = argparse.ArgumentParser(description='ESMC LoRA fine-tuning (local GPU).')
+  ap.add_argument('--train-csv', required=True)
+  ap.add_argument('--test-csv', default='')
+  ap.add_argument('--model', default='biohub/ESMC-300M')
+  ap.add_argument('--seq-col', default='Sequence')
+  ap.add_argument('--label-col', default='EC1')
+  ap.add_argument('--task', default='classification',
+                  choices=('classification', 'regression'))
+  ap.add_argument('--steps', type=int, default=1000)
+  ap.add_argument('--batch-size', type=int, default=8)
+  ap.add_argument('--lr', type=float, default=1e-4)
+  ap.add_argument('--max-seq-len', type=int, default=1024)
+  ap.add_argument('--val-every', type=int, default=250)
+  ap.add_argument('--val-fraction', type=float, default=0.01)
+  ap.add_argument('--lora-rank', type=int, default=8)
+  ap.add_argument('--lora-alpha', type=int, default=16)
+  ap.add_argument('--lora-dropout', type=float, default=0.01)
+  ap.add_argument('--seed', type=int, default=0)
+  ap.add_argument('--eval-batch-size', type=int, default=16)
+  ap.add_argument('--out', default='./lora_results')
+  ap.add_argument('--backend', default='auto',
+                  choices=('auto', 'local', 'modal'),
+                  help='auto: local GPU if verified, else Modal.')
+  args = vars(ap.parse_args())
+
+  backend = em.choose_backend(args['backend'])
+  if backend == 'local':
+    _run_local(args)
+  else:
+    quoted = ' '.join(
+        f'--{k.replace("_", "-")} {v!r}' for k, v in args.items()
+        if k != 'backend' and v not in ('', None))
+    raise SystemExit(
+        'No local GPU verified, so this must run on Modal. Use:\n\n'
+        f'  modal run scripts/finetune.py {quoted}\n')

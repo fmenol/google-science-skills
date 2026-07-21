@@ -87,7 +87,15 @@ GFP_PRESET = {
     timeout=3 * 3600,
 )
 def campaign_shard(cfg: dict) -> dict:
-  """Run one shard of a design campaign and return its records + distributions.
+  """Modal wrapper around `_run_shard`. Runs on a rented GPU."""
+  return _run_shard(cfg)
+
+
+def _run_shard(cfg: dict) -> dict:
+  """Run one shard of a design campaign and return records + distributions.
+
+  Shared core: `campaign_shard` calls it on a Modal GPU, the `local` backend
+  calls it in-process on a verified local GPU.
 
   Args:
     cfg: motif, length, template, thresholds, num_generations, seed.
@@ -317,6 +325,34 @@ def _run_one(esm3, prompt, template_ca, motif, motif_positions, cfg, idx,
 # --------------------------------------------------------------------------
 
 
+def _build_cfgs(a: dict) -> list[dict]:
+  """Build one config per shard from a params mapping (shared by both backends)."""
+  vals = dict(motif=a['motif'], length=a['length'],
+              template_pdb=a['template_pdb'], template_chain=a['template_chain'],
+              structure_positions=a['structure_positions'])
+  if a['preset'] == 'gfp':
+    for k, v in GFP_PRESET.items():
+      if not vals.get(k):
+        vals[k] = v
+    print('using the gfp_design.ipynb preset (1qy3 template, chromophore motif)')
+  elif a['preset']:
+    raise SystemExit(f'unknown preset {a["preset"]!r}')
+  if not vals['motif']:
+    raise SystemExit('--motif is required (or --preset gfp)')
+  if not vals['length']:
+    raise SystemExit('--length is required (or --preset gfp)')
+
+  per_shard = -(-a['num_generations'] // a['num_shards'])
+  if a['num_generations'] < 100:
+    print('NOTE: upstream warns some prompts need thousands of generations; '
+          'a run this small is a smoke test, not a campaign.')
+  return [dict(model=a['model'], num_generations=per_shard, seed=a['seed'] + s,
+               temperature=a['temperature'], max_steps=a['max_steps'],
+               site_rmsd_max=a['site_rmsd_max'],
+               backbone_rmsd_min=a['backbone_rmsd_min'], **vals)
+          for s in range(a['num_shards'])]
+
+
 @app.local_entrypoint()
 def main(
     num_generations: int,
@@ -335,37 +371,21 @@ def main(
     seed: int = 0,
     out: str = './campaign',
 ):
-  """Run a sharded motif-scaffolding campaign on Modal GPUs and pool results."""
-  vals = dict(motif=motif, length=length, template_pdb=template_pdb,
-              template_chain=template_chain,
-              structure_positions=structure_positions)
-  if preset == 'gfp':
-    for k, v in GFP_PRESET.items():
-      if not vals.get(k):
-        vals[k] = v
-    print('using the gfp_design.ipynb preset (1qy3 template, chromophore motif)')
-  elif preset:
-    raise SystemExit(f'unknown preset {preset!r}')
-  if not vals['motif']:
-    raise SystemExit('--motif is required (or --preset gfp)')
-  if not vals['length']:
-    raise SystemExit('--length is required (or --preset gfp)')
+  """Run a sharded motif-scaffolding campaign on Modal GPUs and pool results.
 
-  per_shard = -(-num_generations // num_shards)
-  if num_generations < 100:
-    print('NOTE: upstream warns some prompts need thousands of generations; '
-          'a run this small is a smoke test, not a campaign.')
-
-  cfgs = [dict(model=model, num_generations=per_shard, seed=seed + s,
-               temperature=temperature, max_steps=max_steps,
-               site_rmsd_max=site_rmsd_max, backbone_rmsd_min=backbone_rmsd_min,
-               **vals)
-          for s in range(num_shards)]
-
+  This is the **Modal** entrypoint (`modal run scripts/campaign.py ...`). To run
+  on a verified local GPU, invoke `python scripts/campaign.py ...` instead (the
+  `__main__` backend below); a local run uses a single process, so `--num-shards`
+  is ignored there.
+  """
+  cfgs = _build_cfgs(locals())
   print(f'campaign: {num_generations} generations across {num_shards} shard(s) '
-        f'= {per_shard} each, on {em.GPUS["a100-40"]}...')
-  results = list(campaign_shard.map(cfgs))
+        f'on {em.GPUS["a100-40"]}...')
+  _collect(list(campaign_shard.map(cfgs)), out)
 
+
+def _collect(results: list, out: str) -> None:
+  """Pool shard results, write files, print the yield (shared by both backends)."""
   outdir = pathlib.Path(out)
   outdir.mkdir(parents=True, exist_ok=True)
   designs, total, gate_totals, best_site = [], 0, {}, None
@@ -406,3 +426,58 @@ def main(
     ident = d.get('identity_to_template')
     print(f'{i:>4}  {d.get("seed"):>5}  {d.get("refold_site_rmsd", 0):>9.2f}  '
           f'{"n/a" if ident is None else f"{ident:>8.1%}"}')
+
+
+# --------------------------------------------------------------------------
+# Local backend (verified GPU, no Modal)
+# --------------------------------------------------------------------------
+
+
+def _run_local(a: dict) -> None:
+  """Run the campaign in-process on a verified local GPU (single shard)."""
+  em.require_local_gpu()
+  if a['num_shards'] > 1:
+    print('NOTE: the local backend runs a single process; running all '
+          f'{a["num_generations"]} generations in one shard.')
+  a = {**a, 'num_shards': 1}
+  cfgs = _build_cfgs(a)
+  print(f'running {a["num_generations"]} generations locally on the detected '
+        f'GPU...')
+  _collect([_run_shard(cfgs[0])], a['out'])
+
+
+if __name__ == '__main__':
+  import argparse
+
+  # LOCAL backend: `python scripts/campaign.py ...` runs on a verified local
+  # GPU. `modal run scripts/campaign.py ...` uses the Modal entrypoint above.
+  ap = argparse.ArgumentParser(description='ESM3 design campaign (local GPU).')
+  ap.add_argument('--num-generations', type=int, required=True)
+  ap.add_argument('--preset', default='', choices=('', 'gfp'))
+  ap.add_argument('--model', default='esm3_sm_open_v1')
+  ap.add_argument('--motif', default='')
+  ap.add_argument('--length', type=int, default=0)
+  ap.add_argument('--template-pdb', default='')
+  ap.add_argument('--template-chain', default='A')
+  ap.add_argument('--structure-positions', default='')
+  ap.add_argument('--num-shards', type=int, default=1)
+  ap.add_argument('--temperature', type=float, default=1.0)
+  ap.add_argument('--max-steps', type=int, default=20)
+  ap.add_argument('--site-rmsd-max', type=float, default=1.5)
+  ap.add_argument('--backbone-rmsd-min', type=float, default=1.5)
+  ap.add_argument('--seed', type=int, default=0)
+  ap.add_argument('--out', default='./campaign')
+  ap.add_argument('--backend', default='auto',
+                  choices=('auto', 'local', 'modal'),
+                  help='auto: local GPU if verified, else Modal.')
+  args = vars(ap.parse_args())
+
+  if em.choose_backend(args['backend']) == 'local':
+    _run_local(args)
+  else:
+    quoted = ' '.join(
+        f'--{k.replace("_", "-")} {v!r}' for k, v in args.items()
+        if k != 'backend' and v not in ('', None, 0))
+    raise SystemExit(
+        'No local GPU verified, so this must run on Modal. Use:\n\n'
+        f'  modal run scripts/campaign.py {quoted}\n')

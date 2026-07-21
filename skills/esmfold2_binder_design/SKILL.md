@@ -23,8 +23,15 @@ description: >
     https://biohub.ai/, then (2) create the file recording the notification text
     and timestamp. **This skill designs novel binding proteins — the acceptable
     use policy is not a formality here.**
-3.  **Modal**: `pip install modal` and `modal token new`. This skill uses an
-    80 GB-class GPU (`a100-80` by default); check your Modal plan covers it.
+3.  **An 80 GB-class GPU, one of two ways** (see
+    [compute-options.md](../esm_common/references/compute-options.md)):
+    * **Modal** (default; recommended for this skill): `pip install modal` and
+      `modal token new`. Runs on `a100-80` by default — check your plan covers
+      it. `modal run scripts/design.py ...`.
+    * **A local GPU**, only if verified available. Note the local path needs the
+      heavy folding stack (flash-attn, transformer-engine, ANARCI/HMMER), which
+      is a substantial local build — **Modal is usually the easier backend
+      here**. `python scripts/design.py ...`.
 4.  **No `BIOHUB_API_KEY` needed.** Zero Biohub credits; the weights are public.
 
 ## Overview

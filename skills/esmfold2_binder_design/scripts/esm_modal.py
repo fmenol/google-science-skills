@@ -273,6 +273,86 @@ def hf_secrets() -> list['modal.Secret']:
 # --------------------------------------------------------------------------
 
 
+# The pip commands that install this environment on a LOCAL machine (for the
+# `local` backend). Mirrors esm_image(): install esm first, then force-reinstall
+# the pinned transformers with --no-deps. The binder-design skill additionally
+# needs flash-attn / transformer-engine / ANARCI and is better run on Modal;
+# see its SKILL.md.
+LOCAL_INSTALL = (
+    'pip install torch==2.8.0 '
+    '--index-url https://download.pytorch.org/whl/cu128\n'
+    f"pip install '{ESM_FORK}' peft==0.17.1 accelerate==1.10.1 "
+    'scikit-learn==1.7.2 pandas==2.3.3 matplotlib==3.10.7\n'
+    f"pip install --no-deps --force-reinstall '{TRANSFORMERS_FORK}'"
+)
+
+
+def gpu_available() -> bool:
+  """True only if a local CUDA GPU is actually usable right now.
+
+  "Verified available" means both that torch is importable in this interpreter
+  AND that it reports a CUDA device -- not merely that a GPU exists on the box.
+  Used to decide whether the `local` backend may run at all; a login node or a
+  laptop returns False, and the skill routes to Modal instead.
+  """
+  try:
+    import torch
+  except ImportError:
+    return False
+  try:
+    return bool(torch.cuda.is_available())
+  except Exception:  # noqa: BLE001  (a broken driver must read as "no GPU")
+    return False
+
+
+def require_local_gpu() -> None:
+  """Raise a helpful SystemExit unless a local CUDA GPU is verified usable.
+
+  Called at the top of every skill's `local` backend, so the failure is a clear
+  instruction (install these, or use Modal) rather than a NameError or an OOM
+  ten minutes in.
+  """
+  try:
+    import torch
+  except ImportError:
+    raise SystemExit(
+        'The local backend needs torch and the ESM forks installed in THIS '
+        'Python environment. Install them with:\n\n  ' + LOCAL_INSTALL +
+        '\n\nOr run on a rented GPU with `modal run` instead (no local install '
+        'needed).'
+    )
+  if not torch.cuda.is_available():
+    raise SystemExit(
+        'No local CUDA GPU is available (torch.cuda.is_available() is False). '
+        'This machine cannot run the local backend. Use `modal run` to run on '
+        'a rented GPU instead, or move to a machine with a GPU.'
+    )
+
+
+def choose_backend(requested: str) -> str:
+  """Resolve a --backend value to 'local' or 'modal'.
+
+  Args:
+    requested: 'auto', 'local' or 'modal'.
+
+  Returns:
+    'local' if it will run in-process here, else 'modal'.
+
+  Raises:
+    SystemExit: 'local' was forced but no GPU is verified (via
+      `require_local_gpu`), or an unknown value was passed.
+  """
+  if requested == 'modal':
+    return 'modal'
+  if requested == 'local':
+    require_local_gpu()
+    return 'local'
+  if requested == 'auto':
+    # Prefer a verified local GPU (free, no upload); otherwise Modal.
+    return 'local' if gpu_available() else 'modal'
+  raise SystemExit(f"unknown --backend {requested!r}; use auto|local|modal")
+
+
 def default_gpu_note(gpu_key: str, need_gb: int) -> str | None:
   """Return a warning string if the chosen GPU is below a workload's floor.
 
