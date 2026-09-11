@@ -37,7 +37,9 @@ They come in two classes:
   inference. They need a Modal account (`pip install modal && modal token new`),
   but **no API key and zero Biohub credits**.
 
-See **[ESM_SKILLS.md](ESM_SKILLS.md)** for the full list, the architecture, the
+See **[Quickstart Tutorial - ESM skills](QUICKSTART_ESM_SKILLS.md)** for a fast,
+step-by-step guide to installing and testing the top skills,
+**[ESM_SKILLS.md](ESM_SKILLS.md)** for the full list, the architecture, the
 documentation and the eval results, and
 **[skills/esm_gpu_common/SPEC_GPU.md](skills/esm_gpu_common/SPEC_GPU.md)** for the
 GPU-skill contract.
